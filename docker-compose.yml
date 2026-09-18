@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: campus_postgres
+    environment:
+      POSTGRES_USER: murense_user
+      POSTGRES_PASSWORD: supersecretpassword
+      POSTGRES_DB: campus_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+    container_name: campus_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://murense_user:supersecretpassword@db:5432/campus_db
+      - PYTHONPATH=/app
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: campus_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
