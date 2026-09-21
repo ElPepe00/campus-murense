@@ -5,8 +5,11 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-# Configuració de claus (en producció utilitzar variables d'entorn)
-SECRET_KEY = os.getenv("SECRET_KEY", "murense_super_secret_jwt_key_2027_change_in_prod")
+# Configuració de claus (obligatòria per seguretat)
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("La variable d'entorn SECRET_KEY és obligatòria i no està configurada.")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hores de sessió
 

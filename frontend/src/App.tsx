@@ -1,122 +1,178 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+// frontend/src/App.tsx
+import { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { Navbar, type PageTabKey } from './components/Navbar';
+import { MobileBottomNav } from './components/MobileBottomNav';
+import { HomeScreen } from './screens/HomeScreen';
+import { InscripcionWizard } from './pages/public/inscripcion/InscripcionWizard';
+import { NoticiasPage } from './pages/public/NoticiasPage';
+import { ContactoPage } from './pages/public/ContactoPage';
+import { LoginPage } from './pages/public/LoginPage';
 
-function App() {
-  const [count, setCount] = useState(0)
+function MainAppContent() {
+  const [activeTab, setActiveTab] = useState<PageTabKey>('inici');
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [apiConnected, setApiConnected] = useState<boolean | null>(null);
+  const { isLoggedIn, usuari } = useAuth();
+
+  useEffect(() => {
+    // Comprovar connexió amb el backend de FastAPI
+    fetch('http://localhost:8000/')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.status === 'ok') {
+          setApiConnected(true);
+        }
+      })
+      .catch(() => {
+        setApiConnected(false);
+      });
+  }, []);
+
+  const handleInscripcioSuccess = (_idInscripcio: number) => {
+    alert('Inscripció guardada correctament! Aviat rebràs la confirmació.');
+    setActiveTab('inici');
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app-wrapper">
+      {/* 1. Barra de navegació adaptable (Pública / Staff) */}
+      <Navbar 
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab)}
+        onOpenLogin={() => setShowLoginModal(true)}
+        onToggleMobileMenu={() => alert('Campus C.D. Murense')}
+      />
 
-      <div className="ticks"></div>
+      {/* 2. Contingut principal segons la pestanya seleccionada */}
+      <main className="main-content">
+        {activeTab === 'inici' && (
+          <HomeScreen 
+            onNavigateToInscripcion={() => setActiveTab('inscripcio')}
+            onNavigateTab={(tab) => setActiveTab(tab)}
+            onOpenLogin={() => setShowLoginModal(true)}
+            apiConnected={apiConnected}
+          />
+        )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {activeTab === 'inscripcio' && (
+          <InscripcionWizard 
+            onCancel={() => setActiveTab('inici')}
+            onSuccess={handleInscripcioSuccess}
+          />
+        )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        {activeTab === 'noticies' && (
+          <NoticiasPage />
+        )}
+
+        {activeTab === 'contacte' && (
+          <ContactoPage />
+        )}
+
+        {/* Vistes d'administració (requereixen login) */}
+        {activeTab.startsWith('admin-') && (
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+            padding: '48px 24px',
+            textAlign: 'center',
+            maxWidth: '640px',
+            margin: '32px auto',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05)'
+          }}>
+            {!isLoggedIn ? (
+              <>
+                <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                  Accés Restringit
+                </h2>
+                <p style={{ fontSize: '14.5px', color: '#64748b', marginBottom: '24px' }}>
+                  Aquesta secció és d'ús exclusiu per a l'equip de coordinació i monitors del C.D. Murense.
+                </p>
+                <button
+                  type="button"
+                  className="btn-hero-primary"
+                  style={{ margin: '0 auto' }}
+                  onClick={() => setShowLoginModal(true)}
+                >
+                  Iniciar sessió com a Staff
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{
+                  display: 'inline-flex',
+                  padding: '4px 12px',
+                  borderRadius: '999px',
+                  background: '#eff6ff',
+                  color: '#0066f5',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  marginBottom: '14px'
+                }}>
+                  Rol actiu: {usuari?.rol}
+                </div>
+                <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                  Panell Admin: {activeTab.replace('admin-', '').toUpperCase()}
+                </h2>
+                <p style={{ fontSize: '14.5px', color: '#64748b', marginBottom: '24px' }}>
+                  Aquesta pantalla es desenvoluparà en la següent fase del panell esportiu.
+                </p>
+                <button
+                  type="button"
+                  className="btn-hero-secondary"
+                  style={{ margin: '0 auto' }}
+                  onClick={() => setActiveTab('inici')}
+                >
+                  Tornar a l'Inici
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* 3. Modal d'inici de sessió de Staff */}
+      {showLoginModal && (
+        <LoginPage 
+          onSuccess={() => {
+            setShowLoginModal(false);
+            setActiveTab('inici');
+          }}
+          onCancel={() => setShowLoginModal(false)}
+        />
+      )}
+
+      {/* 4. Peu de pàgina net */}
+      <footer className="site-footer">
+        <div className="footer-container">
+          <p>© 2027 Club Esportiu C.D. Murense • Campus d'Estiu. Tots els drets reservats.</p>
+          <div className="footer-status-pill">
+            <span className={`status-dot ${apiConnected ? 'green' : apiConnected === false ? 'red' : 'yellow'}`}></span>
+            <span>
+              {apiConnected ? 'Servidor Backend connectat' : apiConnected === false ? 'Backend desconnectat' : 'Connectant...'}
+            </span>
+          </div>
+        </div>
+      </footer>
+
+      {/* 5. Barra inferior per a pantalles tàctils / mòbils */}
+      <MobileBottomNav 
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab)}
+        onOpenLogin={() => setShowLoginModal(true)}
+      />
+    </div>
+  );
 }
 
-export default App
+export function App() {
+  return (
+    <AuthProvider>
+      <MainAppContent />
+    </AuthProvider>
+  );
+}
+
+export default App;
