@@ -1,6 +1,6 @@
 // frontend/src/pages/public/LoginPage.tsx
 import React, { useState } from 'react';
-import { Shield, Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
+import { Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface LoginPageProps {
@@ -38,11 +38,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onCancel }) => 
     <div className="login-modal-overlay">
       <div className="login-card">
         <div className="login-card-header">
-          <div className="login-icon-circle">
-            <Shield size={28} color="#ffffff" />
-          </div>
+          <img 
+            src="/logo.jpeg" 
+            alt="C.D. Murense" 
+            style={{ width: '64px', height: '64px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }}
+          />
           <h2 className="login-title">Accés de Coordinació i Staff</h2>
-          <p className="login-subtitle">Área restringida per a administradors i monitors del C.D. Murense</p>
+          <p className="login-subtitle">Àrea restringida per a administradors i monitors del C.D. Murense</p>
         </div>
 
         {error && (

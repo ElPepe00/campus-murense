@@ -1,0 +1,265 @@
+// frontend/src/pages/admin/AsistenciaPage.tsx
+import React, { useState, useEffect } from 'react';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Calendar, 
+  Search, 
+  Save, 
+  Check, 
+  User,
+  Clock,
+  Sparkles
+} from 'lucide-react';
+import { 
+  fetchAssistencia, 
+  updateAssistencia, 
+  type AssistenciaResponse 
+} from '../../api/campusApi';
+
+export const AsistenciaPage: React.FC = () => {
+  const [dataSeleccionada, setDataSeleccionada] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
+  const [assistencia, setAssistencia] = useState<AssistenciaResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    carregarAssistencia(dataSeleccionada);
+  }, [dataSeleccionada]);
+
+  const carregarAssistencia = (d: string) => {
+    setLoading(true);
+    fetchAssistencia(d)
+      .then((res) => setAssistencia(res))
+      .catch((err) => console.error('Error carregant assistència:', err))
+      .finally(() => setLoading(false));
+  };
+
+  const handlePrevDay = () => {
+    const d = new Date(dataSeleccionada);
+    d.setDate(d.getDate() - 1);
+    setDataSeleccionada(d.toISOString().split('T')[0]);
+  };
+
+  const handleNextDay = () => {
+    const d = new Date(dataSeleccionada);
+    d.setDate(d.getDate() + 1);
+    setDataSeleccionada(d.toISOString().split('T')[0]);
+  };
+
+  const togglePresent = async (jugadorId: number, currentPresent: boolean) => {
+    const nouPresent = !currentPresent;
+
+    // Actualització optimista
+    setAssistencia((prev) => {
+      if (!prev) return prev;
+      const nousRegistres = prev.registres.map((r) => {
+        if (r.jugadorId === jugadorId) {
+          const ara = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          return {
+            ...r,
+            present: nouPresent,
+            horaEntrada: nouPresent ? (r.horaEntrada !== '--' ? r.horaEntrada : ara) : '--',
+            horaSortida: nouPresent ? r.horaSortida : '--',
+          };
+        }
+        return r;
+      });
+
+      const presents = nousRegistres.filter((r) => r.present).length;
+      const absents = nousRegistres.length - presents;
+
+      return {
+        ...prev,
+        presentes: presents,
+        ausentes: absents,
+        registres: nousRegistres,
+      };
+    });
+
+    try {
+      await updateAssistencia(jugadorId, dataSeleccionada, nouPresent);
+    } catch (err) {
+      console.error('Error guardant assistència:', err);
+      // Revertir si cal
+      carregarAssistencia(dataSeleccionada);
+    }
+  };
+
+  const filteredList = assistencia?.registres.filter((r) =>
+    r.nom.toLowerCase().includes(search.toLowerCase())
+  ) || [];
+
+  return (
+    <div className="admin-page-container">
+      {/* Capçalera */}
+      <div className="admin-page-header">
+        <div>
+          <h1 className="admin-page-title">Control d'Assistència Diària</h1>
+          <p className="admin-page-subtitle">Passe de llista ràpid per a monitors i coordinació</p>
+        </div>
+      </div>
+
+      {/* Selector de Data amb Fletxes (Estil Pantalla 5) */}
+      <div className="date-picker-card">
+        <button type="button" className="btn-date-nav" onClick={handlePrevDay} title="Dia anterior">
+          <ChevronLeft size={20} />
+        </button>
+
+        <div className="date-current-label">
+          <Calendar size={18} color="#0066f5" />
+          <span>
+            {new Date(dataSeleccionada).toLocaleDateString('ca-ES', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            })}
+          </span>
+        </div>
+
+        <button type="button" className="btn-date-nav" onClick={handleNextDay} title="Dia següent">
+          <ChevronRight size={20} />
+        </button>
+      </div>
+
+      {/* 3 Mini-Cards de Resum (Presents / Absents / Total) */}
+      {assistencia && (
+        <div className="attendance-summary-grid">
+          <div className="attendance-kpi green">
+            <span className="attendance-kpi-num">{assistencia.presentes}</span>
+            <span className="attendance-kpi-label">Presents</span>
+          </div>
+
+          <div className="attendance-kpi red">
+            <span className="attendance-kpi-num">{assistencia.ausentes}</span>
+            <span className="attendance-kpi-label">Absents</span>
+          </div>
+
+          <div className="attendance-kpi gray">
+            <span className="attendance-kpi-num">{assistencia.total}</span>
+            <span className="attendance-kpi-label">Total</span>
+          </div>
+        </div>
+      )}
+
+      {/* Buscador de nin */}
+      <div className="table-controls-bar" style={{ marginTop: '16px' }}>
+        <div className="search-input-wrapper" style={{ width: '100%', maxWidth: '100%' }}>
+          <Search size={18} className="search-icon" />
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Buscar nin o nina a la llista d'avui..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Taula de llista amb checkboxes */}
+      <div className="data-table-card">
+        {loading ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+            Carregant assistència...
+          </div>
+        ) : filteredList.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+            No hi ha alumnes que coincideixin amb la cerca.
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <table className="custom-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '50px', textAlign: 'center' }}>Check</th>
+                  <th>Niño / Niña</th>
+                  <th>Grup</th>
+                  <th>Entrada</th>
+                  <th>Sortida</th>
+                  <th>Estat</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredList.map((nen) => (
+                  <tr 
+                    key={nen.jugadorId}
+                    className={`attendance-row ${nen.present ? 'row-present' : ''}`}
+                    onClick={() => togglePresent(nen.jugadorId, nen.present)}
+                  >
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        type="button"
+                        className={`checkbox-custom ${nen.present ? 'checked' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePresent(nen.jugadorId, nen.present);
+                        }}
+                      >
+                        {nen.present && <Check size={16} strokeWidth={3} />}
+                      </button>
+                    </td>
+                    <td>
+                      <div className="child-cell-profile">
+                        <div className="child-avatar-thumb" style={{ background: nen.present ? '#eff6ff' : '#f1f5f9' }}>
+                          <User size={18} color={nen.present ? '#0066f5' : '#94a3b8'} />
+                        </div>
+                        <strong className="child-name">{nen.nom}</strong>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="group-badge">{nen.grup}</span>
+                    </td>
+                    <td>
+                      <span className="time-pill">
+                        <Clock size={13} />
+                        {nen.horaEntrada}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="time-pill">
+                        <Clock size={13} />
+                        {nen.horaSortida}
+                      </span>
+                    </td>
+                    <td>
+                      {nen.present ? (
+                        <span className="status-badge success">Present</span>
+                      ) : (
+                        <span className="status-badge danger">Absent</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Botó de confirmar / guardar */}
+      <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+        {savedSuccess && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#10b981', fontWeight: 700, fontSize: '14px' }}>
+            <Sparkles size={16} />
+            Assistència guardada correctament!
+          </span>
+        )}
+        <button
+          type="button"
+          className="btn-hero-primary"
+          onClick={() => {
+            setSavedSuccess(true);
+            setTimeout(() => setSavedSuccess(false), 3000);
+          }}
+        >
+          <Save size={18} />
+          <span>Guardar assistència</span>
+        </button>
+      </div>
+    </div>
+  );
+};
