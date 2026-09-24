@@ -1,4 +1,4 @@
-// frontend/src/pages/admin/FichaNenPage.tsx
+// frontend/src/pages/admin/StudentDetailPage.tsx
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
@@ -18,14 +18,18 @@ import {
 } from 'lucide-react';
 import { fetchFitxaInfant, type FitxaInfant } from '../../api/campusApi';
 
-interface FichaNenPageProps {
+interface StudentDetailPageProps {
   childId: number;
   onBack: () => void;
 }
 
 type SubTabKey = 'datos' | 'familia' | 'medica' | 'campus';
 
-export const FichaNenPage: React.FC<FichaNenPageProps> = ({ childId, onBack }) => {
+/**
+ * Fitxa completa i detallada de l'infant inscrit (Pantalla 4).
+ * Inclou 4 sub-pestanyes: Dades personals, Família i recollida, Fitxa mèdica i Serveis del campus.
+ */
+export const StudentDetailPage: React.FC<StudentDetailPageProps> = ({ childId, onBack }) => {
   const [fitxa, setFitxa] = useState<FitxaInfant | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState<SubTabKey>('datos');
@@ -33,7 +37,9 @@ export const FichaNenPage: React.FC<FichaNenPageProps> = ({ childId, onBack }) =
   useEffect(() => {
     fetchFitxaInfant(childId)
       .then((data) => setFitxa(data))
-      .catch((err) => console.error('Error carregant fitxa:', err))
+      .catch((err: unknown) => {
+        console.error('Error carregant fitxa:', err);
+      })
       .finally(() => setLoading(false));
   }, [childId]);
 
@@ -63,7 +69,7 @@ export const FichaNenPage: React.FC<FichaNenPageProps> = ({ childId, onBack }) =
 
   return (
     <div className="admin-page-container" style={{ maxWidth: '840px' }}>
-      {/* Botó enrere */}
+      {/* Botó per tornar al llistat */}
       <div style={{ marginBottom: '16px' }}>
         <button type="button" className="btn-wizard-back" onClick={onBack}>
           <ArrowLeft size={18} />
@@ -71,7 +77,7 @@ export const FichaNenPage: React.FC<FichaNenPageProps> = ({ childId, onBack }) =
         </button>
       </div>
 
-      {/* Targeta Principal de l'Alumne (Capçalera com a la pantalla 4) */}
+      {/* Targeta Principal de Capçalera de l'Alumne */}
       <div className="child-profile-hero-card">
         <div className="child-hero-avatar">
           <User size={48} color="#0066f5" />
@@ -101,7 +107,7 @@ export const FichaNenPage: React.FC<FichaNenPageProps> = ({ childId, onBack }) =
         </div>
       </div>
 
-      {/* Pestanyes de navegació de la fitxa */}
+      {/* Pestanyes de navegació interna de la fitxa */}
       <div className="profile-subtabs-nav" role="tablist">
         <button
           type="button"
@@ -140,9 +146,9 @@ export const FichaNenPage: React.FC<FichaNenPageProps> = ({ childId, onBack }) =
         </button>
       </div>
 
-      {/* Contingut de la pestanya seleccionada */}
+      {/* Contingut de la sub-pestanya activa */}
       <div className="profile-card-body">
-        {/* PESTANYA 1: DADES */}
+        {/* SUBPESTANYA 1: DADES PERSONALS */}
         {activeSubTab === 'datos' && (
           <div className="profile-fields-grid">
             <div className="profile-field-item">
@@ -189,7 +195,7 @@ export const FichaNenPage: React.FC<FichaNenPageProps> = ({ childId, onBack }) =
           </div>
         )}
 
-        {/* PESTANYA 2: FAMÍLIA */}
+        {/* SUBPESTANYA 2: FAMÍLIA I RECOLLIDA */}
         {activeSubTab === 'familia' && (
           <div>
             <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '14px', color: '#0f172a' }}>
@@ -239,7 +245,7 @@ export const FichaNenPage: React.FC<FichaNenPageProps> = ({ childId, onBack }) =
           </div>
         )}
 
-        {/* PESTANYA 3: MÈDICA */}
+        {/* SUBPESTANYA 3: FITXA MÈDICA */}
         {activeSubTab === 'medica' && (
           <div>
             <div className="medical-alert-box">
@@ -267,7 +273,7 @@ export const FichaNenPage: React.FC<FichaNenPageProps> = ({ childId, onBack }) =
           </div>
         )}
 
-        {/* PESTANYA 4: CAMPUS I SERVEIS */}
+        {/* SUBPESTANYA 4: SERVEIS CONTRACTATS */}
         {activeSubTab === 'campus' && (
           <div className="profile-fields-grid">
             <div className="profile-field-item">
@@ -308,12 +314,12 @@ export const FichaNenPage: React.FC<FichaNenPageProps> = ({ childId, onBack }) =
         )}
       </div>
 
-      {/* Botó d'edició */}
+      {/* Botó d'edició ràpida */}
       <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
         <button 
           type="button" 
           className="btn-hero-secondary"
-          onClick={() => alert('Modificar fitxa de l\'alumne')}
+          onClick={() => alert('Funció d\'edició de dades en desenvolupament')}
         >
           <Edit size={16} />
           <span>Editar fitxa de l'infant</span>
@@ -322,3 +328,5 @@ export const FichaNenPage: React.FC<FichaNenPageProps> = ({ childId, onBack }) =
     </div>
   );
 };
+
+export default StudentDetailPage;

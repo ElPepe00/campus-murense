@@ -1,4 +1,4 @@
-// frontend/src/pages/admin/AsistenciaPage.tsx
+// frontend/src/pages/admin/AttendancePage.tsx
 import React, { useState, useEffect } from 'react';
 import { 
   ChevronLeft, 
@@ -17,7 +17,11 @@ import {
   type AssistenciaResponse 
 } from '../../api/campusApi';
 
-export const AsistenciaPage: React.FC = () => {
+/**
+ * Pantalla d'assistència diària per a monitors i coordinació esportiva (Pantalla 5).
+ * Permet navegar entre dates, veure el recompte de presents/absents i marcar l'assistència a l'instant.
+ */
+export const AttendancePage: React.FC = () => {
   const [dataSeleccionada, setDataSeleccionada] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
@@ -34,7 +38,9 @@ export const AsistenciaPage: React.FC = () => {
     setLoading(true);
     fetchAssistencia(d)
       .then((res) => setAssistencia(res))
-      .catch((err) => console.error('Error carregant assistència:', err))
+      .catch((err: unknown) => {
+        console.error('Error carregant assistència:', err);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -53,7 +59,7 @@ export const AsistenciaPage: React.FC = () => {
   const togglePresent = async (jugadorId: number, currentPresent: boolean) => {
     const nouPresent = !currentPresent;
 
-    // Actualització optimista
+    // Actualització optimista de l'estat local
     setAssistencia((prev) => {
       if (!prev) return prev;
       const nousRegistres = prev.registres.map((r) => {
@@ -82,9 +88,9 @@ export const AsistenciaPage: React.FC = () => {
 
     try {
       await updateAssistencia(jugadorId, dataSeleccionada, nouPresent);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error guardant assistència:', err);
-      // Revertir si cal
+      // Revertir dades en cas d'error de xarxa
       carregarAssistencia(dataSeleccionada);
     }
   };
@@ -95,7 +101,7 @@ export const AsistenciaPage: React.FC = () => {
 
   return (
     <div className="admin-page-container">
-      {/* Capçalera */}
+      {/* Capçalera del mòdul */}
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Control d'Assistència Diària</h1>
@@ -103,7 +109,7 @@ export const AsistenciaPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Selector de Data amb Fletxes (Estil Pantalla 5) */}
+      {/* Selector de Data amb Fletxes de Navegació */}
       <div className="date-picker-card">
         <button type="button" className="btn-date-nav" onClick={handlePrevDay} title="Dia anterior">
           <ChevronLeft size={20} />
@@ -126,7 +132,7 @@ export const AsistenciaPage: React.FC = () => {
         </button>
       </div>
 
-      {/* 3 Mini-Cards de Resum (Presents / Absents / Total) */}
+      {/* Targetes de resum (Presents / Absents / Total) */}
       {assistencia && (
         <div className="attendance-summary-grid">
           <div className="attendance-kpi green">
@@ -141,26 +147,26 @@ export const AsistenciaPage: React.FC = () => {
 
           <div className="attendance-kpi gray">
             <span className="attendance-kpi-num">{assistencia.total}</span>
-            <span className="attendance-kpi-label">Total</span>
+            <span className="attendance-kpi-label">Total Inscripcions</span>
           </div>
         </div>
       )}
 
-      {/* Buscador de nin */}
+      {/* Cerca per text de l'infant */}
       <div className="table-controls-bar" style={{ marginTop: '16px' }}>
         <div className="search-input-wrapper" style={{ width: '100%', maxWidth: '100%' }}>
           <Search size={18} className="search-icon" />
           <input
             type="text"
             className="search-input"
-            placeholder="Buscar nin o nina a la llista d'avui..."
+            placeholder="Cercar infant a la llista d'avui..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      {/* Taula de llista amb checkboxes */}
+      {/* Taula interactiva d'assistència */}
       <div className="data-table-card">
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
@@ -176,10 +182,10 @@ export const AsistenciaPage: React.FC = () => {
               <thead>
                 <tr>
                   <th style={{ width: '50px', textAlign: 'center' }}>Check</th>
-                  <th>Niño / Niña</th>
+                  <th>Infant / Alumne</th>
                   <th>Grup</th>
-                  <th>Entrada</th>
-                  <th>Sortida</th>
+                  <th>Hora Entrada</th>
+                  <th>Hora Sortida</th>
                   <th>Estat</th>
                 </tr>
               </thead>
@@ -198,6 +204,7 @@ export const AsistenciaPage: React.FC = () => {
                           e.stopPropagation();
                           togglePresent(nen.jugadorId, nen.present);
                         }}
+                        aria-label={`Marcar assistència per a ${nen.nom}`}
                       >
                         {nen.present && <Check size={16} strokeWidth={3} />}
                       </button>
@@ -240,7 +247,7 @@ export const AsistenciaPage: React.FC = () => {
         )}
       </div>
 
-      {/* Botó de confirmar / guardar */}
+      {/* Botó de desar canvis */}
       <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
         {savedSuccess && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#10b981', fontWeight: 700, fontSize: '14px' }}>
@@ -263,3 +270,5 @@ export const AsistenciaPage: React.FC = () => {
     </div>
   );
 };
+
+export default AttendancePage;

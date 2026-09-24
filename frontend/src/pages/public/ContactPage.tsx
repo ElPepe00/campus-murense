@@ -1,10 +1,21 @@
-// frontend/src/pages/public/ContactoPage.tsx
+// frontend/src/pages/public/ContactPage.tsx
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, CheckCircle2 } from 'lucide-react';
 
-export const ContactoPage: React.FC = () => {
+interface ContactFormData {
+  nom: string;
+  email: string;
+  telefon: string;
+  assumpte: string;
+  missatge: string;
+}
+
+/**
+ * Pàgina pública de contacte i atenció a les famílies del campus.
+ */
+export const ContactPage: React.FC = () => {
   const [enviat, setEnviat] = useState(false);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ContactFormData>({
     nom: '',
     email: '',
     telefon: '',
@@ -18,7 +29,7 @@ export const ContactoPage: React.FC = () => {
       alert('Per favor, omple els camps obligatoris (Nom, Correu i Missatge)');
       return;
     }
-    // Simulació d'enviament
+    // Simulació d'enviament de la consulta
     setEnviat(true);
   };
 
@@ -32,7 +43,7 @@ export const ContactoPage: React.FC = () => {
       </div>
 
       <div className="contacto-grid">
-        {/* Formulari de contacte */}
+        {/* Formulari de contacte per a les famílies */}
         <div className="contacto-form-card">
           {enviat ? (
             <div className="contacto-success-box">
@@ -127,8 +138,8 @@ export const ContactoPage: React.FC = () => {
           )}
         </div>
 
-        {/* Info lateral del club */}
-        <div className="contacto-info-card">
+        {/* Informació lateral de contacte */}
+        <aside className="contacto-info-card">
           <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '16px', color: '#0f172a' }}>
             Club Esportiu C.D. Murense
           </h2>
@@ -165,8 +176,10 @@ export const ContactoPage: React.FC = () => {
               <p>Dilluns a Divendres: 9:00h - 14:00h</p>
             </div>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );
 };
+
+export default ContactPage;

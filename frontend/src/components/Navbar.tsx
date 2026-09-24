@@ -5,8 +5,7 @@ import {
   Plus, 
   Menu,
   Bell,
-  MessageSquare,
-  Lock
+  MessageSquare
 } from 'lucide-react';
 
 export type PageTabKey = 
@@ -24,14 +23,12 @@ export type PageTabKey =
 interface NavbarProps {
   activeTab: PageTabKey;
   onTabChange: (tab: PageTabKey) => void;
-  onOpenLogin: () => void;
   onToggleMobileMenu?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onTabChange,
-  onOpenLogin,
   onToggleMobileMenu,
 }) => {
   return (
@@ -96,17 +93,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Navbar Actions */}
         <div className="navbar-actions">
-          <button
-            type="button"
-            className="btn-hero-secondary"
-            style={{ padding: '8px 14px', fontSize: '13px' }}
-            onClick={onOpenLogin}
-            title="Accés per a monitors i coordinació"
-          >
-            <Lock size={15} />
-            <span>Accés Staff</span>
-          </button>
-
           <button
             type="button"
             className="btn-navbar-cta"

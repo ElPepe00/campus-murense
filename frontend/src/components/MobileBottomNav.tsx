@@ -1,19 +1,17 @@
 // frontend/src/components/MobileBottomNav.tsx
 import React from 'react';
-import { Home, PlusCircle, Bell, MessageSquare, Users, CalendarCheck, Lock } from 'lucide-react';
+import { Home, PlusCircle, Bell, MessageSquare, Users, CalendarCheck } from 'lucide-react';
 import type { PageTabKey } from './Navbar';
 import { useAuth } from '../context/AuthContext';
 
 interface MobileBottomNavProps {
   activeTab: PageTabKey;
   onTabChange: (tab: PageTabKey) => void;
-  onOpenLogin: () => void;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   activeTab,
   onTabChange,
-  onOpenLogin,
 }) => {
   const { isLoggedIn } = useAuth();
 
@@ -95,15 +93,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       >
         <MessageSquare size={19} strokeWidth={activeTab === 'contacte' ? 2.5 : 2} />
         <span>Contacte</span>
-      </button>
-
-      <button
-        type="button"
-        className="nav-tab-mobile"
-        onClick={onOpenLogin}
-      >
-        <Lock size={19} />
-        <span>Staff</span>
       </button>
     </nav>
   );

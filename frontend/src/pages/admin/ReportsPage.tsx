@@ -1,4 +1,4 @@
-// frontend/src/pages/admin/InformesPage.tsx
+// frontend/src/pages/admin/ReportsPage.tsx
 import React, { useState } from 'react';
 import { 
   FileSpreadsheet, 
@@ -11,11 +11,16 @@ import {
 } from 'lucide-react';
 import { fetchInscrits, fetchPagos, fetchAssistencia } from '../../api/campusApi';
 
-export const InformesPage: React.FC = () => {
+/**
+ * Pantalla d'informes i descàrrega de dades oficials del campus (Pantalla 7).
+ * Permet exportar llistats complets d'inscrits, assistència i quotes a fitxers CSV compatibles amb Excel.
+ */
+export const ReportsPage: React.FC = () => {
   const [exporting, setExporting] = useState<string | null>(null);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
   const downloadCSV = (filename: string, csvContent: string) => {
+    // Afegim el BOM UTF-8 per garantir que Excel obri correctament els caràcters catalans (accents, ç, l·l)
     const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -36,8 +41,8 @@ export const InformesPage: React.FC = () => {
       });
       downloadCSV('llistat_inscrits_campus_murense.csv', csv);
       setDownloadSuccess('Llistat complet descarregat correctament!');
-    } catch (err) {
-      console.error(err);
+    } catch (err: unknown) {
+      console.error('Error descarregant inscrits:', err);
     } finally {
       setExporting(null);
     }
@@ -53,8 +58,8 @@ export const InformesPage: React.FC = () => {
       });
       downloadCSV('informe_pagaments_campus_murense.csv', csv);
       setDownloadSuccess('Informe de pagaments descarregat!');
-    } catch (err) {
-      console.error(err);
+    } catch (err: unknown) {
+      console.error('Error descarregant pagaments:', err);
     } finally {
       setExporting(null);
     }
@@ -70,8 +75,8 @@ export const InformesPage: React.FC = () => {
       });
       downloadCSV(`assistencia_campus_${data.data}.csv`, csv);
       setDownloadSuccess('Registre d’assistència descarregat!');
-    } catch (err) {
-      console.error(err);
+    } catch (err: unknown) {
+      console.error('Error descarregant assistència:', err);
     } finally {
       setExporting(null);
     }
@@ -82,7 +87,7 @@ export const InformesPage: React.FC = () => {
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Informes i Exportació</h1>
-          <p className="admin-page-subtitle">Genera fitxers i llistats oficials del campus</p>
+          <p className="admin-page-subtitle">Genera fitxers i llistats oficials del campus per a fulls de càlcul</p>
         </div>
       </div>
 
@@ -105,7 +110,7 @@ export const InformesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Opcions d'exportació de la Maqueta 7 */}
+      {/* Opcions d'exportació */}
       <div className="menu-list" style={{ boxShadow: 'var(--shadow-card)', borderRadius: '16px' }}>
         <div 
           className="menu-item"
@@ -118,7 +123,7 @@ export const InformesPage: React.FC = () => {
               <FileText size={20} />
             </div>
             <div>
-              <strong className="menu-item-text">Llistat complet</strong>
+              <strong className="menu-item-text">Llistat complet de participants</strong>
               <p style={{ fontSize: '12.5px', color: '#64748b' }}>Tots els nins i nines inscrits amb grups i edats</p>
             </div>
           </div>
@@ -141,7 +146,7 @@ export const InformesPage: React.FC = () => {
               <CalendarCheck size={20} />
             </div>
             <div>
-              <strong className="menu-item-text">Assistència</strong>
+              <strong className="menu-item-text">Registre d'assistència</strong>
               <p style={{ fontSize: '12.5px', color: '#64748b' }}>Històric d'assistència per dates i grups</p>
             </div>
           </div>
@@ -164,7 +169,7 @@ export const InformesPage: React.FC = () => {
               <CreditCard size={20} />
             </div>
             <div>
-              <strong className="menu-item-text">Pagaments</strong>
+              <strong className="menu-item-text">Seguiment de pagaments</strong>
               <p style={{ fontSize: '12.5px', color: '#64748b' }}>Estat de cobraments i justificants pendents</p>
             </div>
           </div>
@@ -197,3 +202,5 @@ export const InformesPage: React.FC = () => {
     </div>
   );
 };
+
+export default ReportsPage;

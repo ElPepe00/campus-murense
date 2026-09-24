@@ -5,30 +5,55 @@ import { Navbar, type PageTabKey } from './components/Navbar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { Sidebar } from './components/Sidebar';
 import { AdminTopBar } from './components/AdminTopBar';
-import { HomeScreen } from './screens/HomeScreen';
-import { InscripcionWizard } from './pages/public/inscripcion/InscripcionWizard';
-import { NoticiasPage } from './pages/public/NoticiasPage';
-import { ContactoPage } from './pages/public/ContactoPage';
+import { HomePage } from './pages/public/HomePage';
+import { RegistrationWizard } from './pages/public/registration/RegistrationWizard';
+import { NewsPage } from './pages/public/NewsPage';
+import { ContactPage } from './pages/public/ContactPage';
 import { LoginPage } from './pages/public/LoginPage';
-import { InscritosPage } from './pages/admin/InscritosPage';
-import { FichaNenPage } from './pages/admin/FichaNenPage';
-import { AsistenciaPage } from './pages/admin/AsistenciaPage';
-import { PagosPage } from './pages/admin/PagosPage';
-import { InformesPage } from './pages/admin/InformesPage';
-import { ConfigPage } from './pages/admin/ConfigPage';
+import { DashboardPage } from './pages/admin/DashboardPage';
+import { StudentsPage } from './pages/admin/StudentsPage';
+import { StudentDetailPage } from './pages/admin/StudentDetailPage';
+import { AttendancePage } from './pages/admin/AttendancePage';
+import { PaymentsPage } from './pages/admin/PaymentsPage';
+import { ReportsPage } from './pages/admin/ReportsPage';
+import { SettingsPage } from './pages/admin/SettingsPage';
 import { fetchCampusStats, type CampusStats } from './api/campusApi';
 
+/**
+ * Component principal que gestiona l'enrutament intern (/ i /admin),
+ * la càrrega d'estadístiques i la divisió estricta entre el portal de famílies i el panell d'staff.
+ */
 function MainAppContent() {
+  const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname);
   const [activeTab, setActiveTab] = useState<PageTabKey>('inici');
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [sidebarOpenMobile, setSidebarOpenMobile] = useState<boolean>(false);
   const [apiConnected, setApiConnected] = useState<boolean | null>(null);
   const [stats, setStats] = useState<CampusStats | undefined>(undefined);
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, usuari, logout } = useAuth();
 
+  const isAdminRoute = currentPath.startsWith('/admin');
+
+  // Canvi de ruta amb l'API History del navegador
+  const navigateTo = (path: string) => {
+    window.history.pushState({}, '', path);
+    setCurrentPath(path);
+    setSelectedChildId(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Suport als botons d'avançar i retrocedir del navegador
   useEffect(() => {
-    // Comprovar connexió amb el backend de FastAPI
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+      setSelectedChildId(null);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Comprovació de disponibilitat de l'API de FastAPI
+  useEffect(() => {
     fetch('http://localhost:8000/')
       .then((res) => res.json())
       .then((data) => {
@@ -41,19 +66,24 @@ function MainAppContent() {
       });
   }, []);
 
+  // Gestió del títol de la pestanya del navegador i càrrega de mètriques per a staff
   useEffect(() => {
-    if (isLoggedIn) {
-      document.title = 'Campus C.D. Murense • Panell Staff';
-      fetchCampusStats()
-        .then((data) => setStats(data))
-        .catch(() => {});
+    if (isAdminRoute) {
+      if (isLoggedIn) {
+        document.title = 'Campus C.D. Murense • Panell Staff';
+        fetchCampusStats()
+          .then((data) => setStats(data))
+          .catch(() => {});
+      } else {
+        document.title = 'Campus C.D. Murense • Accés Staff';
+      }
     } else {
       document.title = "Campus C.D. Murense • Campus d'Estiu 2027";
     }
-  }, [isLoggedIn, activeTab]);
+  }, [isAdminRoute, isLoggedIn, activeTab]);
 
   const handleInscripcioSuccess = (_idInscripcio: number) => {
-    alert('Inscripció guardada correctament! Aviat rebràs la confirmació.');
+    alert('Inscripció guardada correctament! Aviat rebràs la confirmació oficial.');
     setActiveTab('inici');
   };
 
@@ -66,97 +96,24 @@ function MainAppContent() {
     setActiveTab(tab);
   };
 
-  // Renderitzador del contingut central
-  const renderScreenContent = () => {
-    if (activeTab === 'inici') {
+  // =========================================================================
+  // VISTA A: RUTA D'ADMINISTRACIÓ (/admin)
+  // =========================================================================
+  if (isAdminRoute) {
+    // Si l'usuari no està autenticat, mostrem la pàgina d'inici de sessió dedicada
+    if (!isLoggedIn) {
       return (
-        <HomeScreen 
-          onNavigateToInscripcion={() => setActiveTab('inscripcio')}
-          onNavigateTab={handleTabChange}
-          onOpenLogin={() => setShowLoginModal(true)}
-          apiConnected={apiConnected}
-          stats={stats}
+        <LoginPage 
+          isFullPage
+          onSuccess={() => navigateTo('/admin')}
+          onCancel={() => navigateTo('/')}
         />
       );
     }
 
-    if (activeTab === 'inscripcio') {
-      return (
-        <InscripcionWizard 
-          onCancel={() => setActiveTab('inici')}
-          onSuccess={handleInscripcioSuccess}
-        />
-      );
-    }
-
-    if (activeTab === 'noticies') {
-      return <NoticiasPage />;
-    }
-
-    if (activeTab === 'contacte') {
-      return <ContactoPage />;
-    }
-
-    if (activeTab === 'admin-inscripcions') {
-      return isLoggedIn ? (
-        selectedChildId ? (
-          <FichaNenPage 
-            childId={selectedChildId} 
-            onBack={() => setSelectedChildId(null)} 
-          />
-        ) : (
-          <InscritosPage 
-            onSelectChild={handleSelectChild}
-            onNewInscripcion={() => setActiveTab('inscripcio')}
-          />
-        )
-      ) : (
-        <RequireLoginPrompt onOpenLogin={() => setShowLoginModal(true)} />
-      );
-    }
-
-    if (activeTab === 'admin-assistencia') {
-      return isLoggedIn ? (
-        <AsistenciaPage />
-      ) : (
-        <RequireLoginPrompt onOpenLogin={() => setShowLoginModal(true)} />
-      );
-    }
-
-    if (activeTab === 'admin-pagos') {
-      return isLoggedIn ? (
-        <PagosPage />
-      ) : (
-        <RequireLoginPrompt onOpenLogin={() => setShowLoginModal(true)} />
-      );
-    }
-
-    if (activeTab === 'admin-informes') {
-      return isLoggedIn ? (
-        <InformesPage />
-      ) : (
-        <RequireLoginPrompt onOpenLogin={() => setShowLoginModal(true)} />
-      );
-    }
-
-    if (activeTab === 'admin-configuracio') {
-      return isLoggedIn ? (
-        <ConfigPage />
-      ) : (
-        <RequireLoginPrompt onOpenLogin={() => setShowLoginModal(true)} />
-      );
-    }
-
-    return null;
-  };
-
-  // =========================================================================
-  // VISTA A: SI L'ADMIN / STAFF ESTÀ LOGUEJAT -> LAYOUT PROFESSIONAL AMB SIDEBAR
-  // =========================================================================
-  if (isLoggedIn) {
+    // Panell d'administració complet per a coordinadors i monitors
     return (
       <div className="admin-layout-wrapper">
-        {/* Sidebar Lateral amb tota la gestió del club */}
         <Sidebar
           activeTab={activeTab}
           onTabChange={handleTabChange}
@@ -165,63 +122,121 @@ function MainAppContent() {
           onCloseMobile={() => setSidebarOpenMobile(false)}
         />
 
-        {/* Àrea Principal de Treball */}
         <div className="admin-main-wrapper">
-          {/* Header Superior Net i Espaiós */}
           <AdminTopBar 
             activeTab={activeTab}
             onToggleSidebar={() => setSidebarOpenMobile(!sidebarOpenMobile)}
             onNewInscripcion={() => handleTabChange('inscripcio')}
-            onViewPublicSite={() => handleTabChange('inici')}
+            onViewPublicSite={() => {
+              setActiveTab('inici');
+              navigateTo('/');
+            }}
             apiConnected={apiConnected}
           />
 
-          {/* Contingut del panell */}
           <main className="main-content" style={{ maxWidth: '100%', padding: '28px 32px 60px' }}>
-            {renderScreenContent()}
+            {activeTab === 'inici' && (
+              <DashboardPage 
+                onNavigateToRegistration={() => handleTabChange('inscripcio')}
+                onNavigateTab={handleTabChange}
+                stats={stats}
+              />
+            )}
+
+            {activeTab === 'admin-inscripcions' && (
+              selectedChildId ? (
+                <StudentDetailPage 
+                  childId={selectedChildId} 
+                  onBack={() => setSelectedChildId(null)} 
+                />
+              ) : (
+                <StudentsPage 
+                  onSelectChild={handleSelectChild}
+                  onNewInscripcion={() => handleTabChange('inscripcio')}
+                />
+              )
+            )}
+
+            {activeTab === 'admin-assistencia' && <AttendancePage />}
+            {activeTab === 'admin-pagos' && <PaymentsPage />}
+            {activeTab === 'admin-informes' && <ReportsPage />}
+            {activeTab === 'admin-configuracio' && <SettingsPage />}
+            {activeTab === 'inscripcio' && (
+              <RegistrationWizard 
+                onCancel={() => handleTabChange('inici')}
+                onSuccess={handleInscripcioSuccess}
+              />
+            )}
+            {activeTab === 'noticies' && <NewsPage />}
+            {activeTab === 'contacte' && <ContactPage />}
           </main>
         </div>
-
-        {showLoginModal && (
-          <LoginPage 
-            onSuccess={() => setShowLoginModal(false)}
-            onCancel={() => setShowLoginModal(false)}
-          />
-        )}
       </div>
     );
   }
 
   // =========================================================================
-  // VISTA B: SI ÉS UN USUARI PÚBLIC / FAMÍLIA -> WEB PÚBLICA NORMAL AMB NAVBAR
+  // VISTA B: RUTA PÚBLICA (PORTAL PER A FAMÍLIES I VISITANTS)
   // =========================================================================
   return (
     <div className="app-wrapper">
-      {/* Barra de navegació pública neta */}
+      {/* Si l'administrador està autenticat a la web pública, li mostrem la barra d'accés ràpid a /admin */}
+      {isLoggedIn && (
+        <aside className="staff-preview-banner" aria-label="Avís de sessió activa">
+          <div className="staff-preview-content">
+            <span>🛡️ Sessió d'administrador iniciada: <strong>{usuari?.nom_complet}</strong></span>
+            <div className="staff-preview-actions">
+              <button 
+                type="button" 
+                className="btn-staff-pill"
+                onClick={() => navigateTo('/admin')}
+              >
+                Anar al Panell d'Administració (/admin)
+              </button>
+              <button 
+                type="button" 
+                className="btn-staff-ghost"
+                onClick={() => {
+                  logout();
+                  navigateTo('/');
+                }}
+              >
+                Tancar sessió
+              </button>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      {/* Barra de navegació pública */}
       <Navbar 
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        onOpenLogin={() => setShowLoginModal(true)}
-        onToggleMobileMenu={() => alert('Campus C.D. Murense')}
+        onToggleMobileMenu={() => alert('Campus C.D. Murense 2027')}
       />
 
       {/* Contingut públic */}
       <main className="main-content">
-        {renderScreenContent()}
+        {activeTab === 'inici' && (
+          <HomePage 
+            onNavigateToRegistration={() => handleTabChange('inscripcio')}
+            onNavigateTab={handleTabChange}
+            apiConnected={apiConnected}
+          />
+        )}
+
+        {activeTab === 'inscripcio' && (
+          <RegistrationWizard 
+            onCancel={() => handleTabChange('inici')}
+            onSuccess={handleInscripcioSuccess}
+          />
+        )}
+
+        {activeTab === 'noticies' && <NewsPage />}
+        {activeTab === 'contacte' && <ContactPage />}
       </main>
 
-      {/* Modal d'accés staff */}
-      {showLoginModal && (
-        <LoginPage 
-          onSuccess={() => {
-            setShowLoginModal(false);
-            setActiveTab('inici');
-          }}
-          onCancel={() => setShowLoginModal(false)}
-        />
-      )}
-
-      {/* Peu de pàgina net */}
+      {/* Peu de pàgina públic */}
       <footer className="site-footer">
         <div className="footer-container">
           <p>© 2027 Club Esportiu C.D. Murense • Campus d'Estiu. Tots els drets reservats.</p>
@@ -234,42 +249,11 @@ function MainAppContent() {
         </div>
       </footer>
 
-      {/* Barra inferior per a mòbils */}
+      {/* Navegació inferior per a mòbils */}
       <MobileBottomNav 
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        onOpenLogin={() => setShowLoginModal(true)}
       />
-    </div>
-  );
-}
-
-function RequireLoginPrompt({ onOpenLogin }: { onOpenLogin: () => void }) {
-  return (
-    <div style={{
-      background: '#ffffff',
-      borderRadius: '16px',
-      border: '1px solid #e2e8f0',
-      padding: '48px 24px',
-      textAlign: 'center',
-      maxWidth: '600px',
-      margin: '40px auto',
-      boxShadow: 'var(--shadow-card)'
-    }}>
-      <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
-        Accés Restringit
-      </h2>
-      <p style={{ fontSize: '14.5px', color: '#64748b', marginBottom: '24px' }}>
-        Aquesta àrea és d'ús exclusiu per a l'equip de coordinació i monitors del C.D. Murense.
-      </p>
-      <button
-        type="button"
-        className="btn-hero-primary"
-        style={{ margin: '0 auto' }}
-        onClick={onOpenLogin}
-      >
-        Identificar-se com a Staff
-      </button>
     </div>
   );
 }

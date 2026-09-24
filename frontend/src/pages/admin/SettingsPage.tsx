@@ -1,4 +1,4 @@
-// frontend/src/pages/admin/ConfigPage.tsx
+// frontend/src/pages/admin/SettingsPage.tsx
 import React from 'react';
 import { 
   Building, 
@@ -10,7 +10,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export const ConfigPage: React.FC = () => {
+/**
+ * Pantalla de configuració general del club, paràmetres del campus i comptes tècnics (Pantalla 8).
+ */
+export const SettingsPage: React.FC = () => {
   const { usuari } = useAuth();
 
   return (
@@ -18,11 +21,11 @@ export const ConfigPage: React.FC = () => {
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Configuració del Campus</h1>
-          <p className="admin-page-subtitle">Paràmetres oficials, grups i equip tècnic</p>
+          <p className="admin-page-subtitle">Paràmetres oficials, grups d'edat i equip tècnic</p>
         </div>
       </div>
 
-      {/* Estat de l'usuari actual */}
+      {/* Estat de l'usuari actual connectat */}
       <div style={{
         background: '#ffffff',
         border: '1px solid #e2e8f0',
@@ -65,7 +68,7 @@ export const ConfigPage: React.FC = () => {
         </span>
       </div>
 
-      {/* Llista d'opcions de la Maqueta 8 */}
+      {/* Llista d'opcions de configuració del campus */}
       <div className="menu-list" style={{ boxShadow: 'var(--shadow-card)', borderRadius: '16px' }}>
         <div 
           className="menu-item"
@@ -160,3 +163,5 @@ export const ConfigPage: React.FC = () => {
     </div>
   );
 };
+
+export default SettingsPage;

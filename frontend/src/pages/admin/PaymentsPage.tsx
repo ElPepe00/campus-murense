@@ -1,4 +1,4 @@
-// frontend/src/pages/admin/PagosPage.tsx
+// frontend/src/pages/admin/PaymentsPage.tsx
 import React, { useState, useEffect } from 'react';
 import { 
   CheckCircle2, 
@@ -9,7 +9,11 @@ import {
 } from 'lucide-react';
 import { fetchPagos, toggleEstatPago, type PagosResponse } from '../../api/campusApi';
 
-export const PagosPage: React.FC = () => {
+/**
+ * Pantalla de control i gestió econòmica de quotes del campus (Pantalla 6).
+ * Permet visualitzar l'estat de pagament de cada alumne i canviar ràpidament entre Pagat i Pendent.
+ */
+export const PaymentsPage: React.FC = () => {
   const [pagosData, setPagosData] = useState<PagosResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -23,7 +27,9 @@ export const PagosPage: React.FC = () => {
     setLoading(true);
     fetchPagos()
       .then((data) => setPagosData(data))
-      .catch((err) => console.error('Error carregant pagaments:', err))
+      .catch((err: unknown) => {
+        console.error('Error carregant pagaments:', err);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -32,7 +38,7 @@ export const PagosPage: React.FC = () => {
     try {
       await toggleEstatPago(id);
       carregarPagos();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error canviant estat pagament:', err);
     } finally {
       setTogglingId(null);
@@ -45,15 +51,15 @@ export const PagosPage: React.FC = () => {
 
   return (
     <div className="admin-page-container">
-      {/* Capçalera */}
+      {/* Capçalera del mòdul */}
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">Control de Pagaments</h1>
-          <p className="admin-page-subtitle">Seguiment econòmic i quotes del campus</p>
+          <h1 className="admin-page-title">Control de Pagaments i Quotes</h1>
+          <p className="admin-page-subtitle">Seguiment econòmic i estat de cobraments del campus</p>
         </div>
       </div>
 
-      {/* KPI Cards (Estil Pantalla 6) */}
+      {/* Targetes de resum (KPIs de pagament) */}
       {pagosData && (
         <div className="stats-grid" style={{ marginBottom: '24px' }}>
           <div className="stat-card green" style={{ cursor: 'default' }}>
@@ -62,7 +68,7 @@ export const PagosPage: React.FC = () => {
             </div>
             <div className="stat-info-col">
               <span className="stat-value">{pagosData.pagats}</span>
-              <span className="stat-title">Pagats</span>
+              <span className="stat-title">Quotes Pagades</span>
             </div>
           </div>
 
@@ -72,7 +78,7 @@ export const PagosPage: React.FC = () => {
             </div>
             <div className="stat-info-col">
               <span className="stat-value">{pagosData.pendents}</span>
-              <span className="stat-title">Pendents</span>
+              <span className="stat-title">Quotes Pendents</span>
             </div>
           </div>
 
@@ -82,13 +88,13 @@ export const PagosPage: React.FC = () => {
             </div>
             <div className="stat-info-col">
               <span className="stat-value">{pagosData.totalInscrits}</span>
-              <span className="stat-title">Total Inscrits</span>
+              <span className="stat-title">Total Alumnes</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Buscador */}
+      {/* Cerca per text de l'infant */}
       <div className="table-controls-bar">
         <div className="search-input-wrapper">
           <Search size={18} className="search-icon" />
@@ -119,7 +125,7 @@ export const PagosPage: React.FC = () => {
                 <tr>
                   <th>Nom de l'infant</th>
                   <th>Grup</th>
-                  <th>Import</th>
+                  <th>Import Total</th>
                   <th>Estat del Pagament</th>
                   <th style={{ textAlign: 'right' }}>Canviar Estat</th>
                 </tr>
@@ -171,3 +177,5 @@ export const PagosPage: React.FC = () => {
     </div>
   );
 };
+
+export default PaymentsPage;

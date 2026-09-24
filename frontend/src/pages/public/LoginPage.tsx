@@ -6,9 +6,10 @@ import { useAuth } from '../../context/AuthContext';
 interface LoginPageProps {
   onSuccess: () => void;
   onCancel: () => void;
+  isFullPage?: boolean;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onCancel }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onCancel, isFullPage = false }) => {
   const { login } = useAuth();
   const [email, setEmail] = useState('admin@cdmurense.com');
   const [password, setPassword] = useState('ClaveInicialSegura2027!');
@@ -35,7 +36,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onCancel }) => 
   };
 
   return (
-    <div className="login-modal-overlay">
+    <div className={isFullPage ? "admin-login-page" : "login-modal-overlay"}>
       <div className="login-card">
         <div className="login-card-header">
           <img 
