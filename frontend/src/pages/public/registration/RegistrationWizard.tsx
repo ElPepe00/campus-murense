@@ -2,6 +2,10 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Check } from 'lucide-react';
 import { Step1StudentData } from './Step1StudentData';
+import { Step2TutorData } from './Step2TutorData';
+import { Step3ServicesData } from './Step3ServicesData';
+import { Step4PermissionsData } from './Step4PermissionsData';
+import { Step5SummaryData } from './Step5SummaryData';
 import type { 
   InscripcioState, 
   DadesNenForm, 
@@ -23,19 +27,24 @@ const INITIAL_NEN: DadesNenForm = {
   sexe: 'nen',
   colegi: 'CEIP Joan Mas (Muro)',
   curs: '4t Primària',
+  tallaRoba: '8-10 anys',
+  alergies: '',
 };
 
 const INITIAL_TUTOR: DadesTutorForm = {
   nomComplet: '',
   email: '',
   telefonPrincipal: '',
+  telefonSecundari: '',
+  parentiu: 'Mare',
+  dni: '',
 };
 
 const INITIAL_SERVEIS: ServeisForm = {
-  setmanes: [1],
+  setmanes: [1, 2],
   menjador: false,
   matinera: false,
-  piscina: 'NO',
+  piscina: 'SI',
   excursio1: false,
   excursio2: false,
 };
@@ -73,11 +82,45 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onCancel
       nen: dadesNen,
       pasActual: 2,
     }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleStep2Next = (tutor: DadesTutorForm, autoritzats: PersonaAutoritzadaForm[]) => {
+    setFormData((prev) => ({
+      ...prev,
+      tutor,
+      autoritzats,
+      pasActual: 3,
+    }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleStep3Next = (serveis: ServeisForm) => {
+    setFormData((prev) => ({
+      ...prev,
+      serveis,
+      pasActual: 4,
+    }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleStep4Next = (autoritzacions: AutoritzacionsForm) => {
+    setFormData((prev) => ({
+      ...prev,
+      autoritzacions,
+      pasActual: 5,
+    }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleFinalConfirm = () => {
+    onSuccess(1);
   };
 
   const handleBack = () => {
     if (formData.pasActual > 1) {
       setFormData((prev) => ({ ...prev, pasActual: prev.pasActual - 1 }));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       onCancel();
     }
@@ -98,7 +141,7 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onCancel
         </button>
 
         <span className="wizard-step-indicator">
-          Pas {formData.pasActual} de {STEPS_CONFIG.length}
+          Pas {formData.pasActual} de {STEPS_CONFIG.length} • {STEPS_CONFIG[formData.pasActual - 1]?.label}
         </span>
       </div>
 
@@ -114,7 +157,7 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onCancel
               className={`stepper-node ${isDone ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}
             >
               <div className="stepper-circle">
-                {isDone ? <Check size={14} strokeWidth={3} /> : step.num}
+                {isDone ? <Check size={16} strokeWidth={3} /> : step.num}
               </div>
               <span className="stepper-label">{step.label}</span>
             </div>
@@ -131,38 +174,37 @@ export const RegistrationWizard: React.FC<RegistrationWizardProps> = ({ onCancel
           />
         )}
 
-        {formData.pasActual > 1 && (
-          <div className="step-card" style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
-              Pas {formData.pasActual}: {STEPS_CONFIG[formData.pasActual - 1]?.label}
-            </h3>
-            <p style={{ fontSize: '14.5px', color: '#64748b', maxWidth: '480px', margin: '0 auto 28px' }}>
-              Aquest formulari permetrà completar les dades de tutors, setmanes seleccionades i autoritzacions mèdiques.
-            </p>
+        {formData.pasActual === 2 && (
+          <Step2TutorData
+            initialTutor={formData.tutor}
+            initialAutoritzats={formData.autoritzats}
+            onBack={handleBack}
+            onNext={handleStep2Next}
+          />
+        )}
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button
-                type="button"
-                className="btn-hero-secondary"
-                onClick={handleBack}
-              >
-                Modificar dades anteriors
-              </button>
-              <button
-                type="button"
-                className="btn-hero-primary"
-                onClick={() => {
-                  if (formData.pasActual < 5) {
-                    setFormData((prev) => ({ ...prev, pasActual: prev.pasActual + 1 }));
-                  } else {
-                    onSuccess(1);
-                  }
-                }}
-              >
-                <span>{formData.pasActual === 5 ? 'Confirmar i Finalitzar' : 'Continuar al següent pas'}</span>
-              </button>
-            </div>
-          </div>
+        {formData.pasActual === 3 && (
+          <Step3ServicesData
+            initialServeis={formData.serveis}
+            onBack={handleBack}
+            onNext={handleStep3Next}
+          />
+        )}
+
+        {formData.pasActual === 4 && (
+          <Step4PermissionsData
+            initialPermisos={formData.autoritzacions}
+            onBack={handleBack}
+            onNext={handleStep4Next}
+          />
+        )}
+
+        {formData.pasActual === 5 && (
+          <Step5SummaryData
+            formData={formData}
+            onBack={handleBack}
+            onConfirm={handleFinalConfirm}
+          />
         )}
       </div>
     </div>

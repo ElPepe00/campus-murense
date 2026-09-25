@@ -207,14 +207,45 @@ export const Step1StudentData: React.FC<Step1StudentDataProps> = ({ initialData,
             ))}
           </select>
         </div>
+
+        {/* Talla de Roba Oficial */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="nen-talla">Talla de samarreta oficial (inclosa)</label>
+          <select
+            id="nen-talla"
+            className="form-select"
+            value={formData.tallaRoba || '8-10 anys'}
+            onChange={(e) => setFormData({ ...formData, tallaRoba: e.target.value })}
+          >
+            <option value="4-6 anys">4 - 6 anys</option>
+            <option value="8-10 anys">8 - 10 anys</option>
+            <option value="12-14 anys">12 - 14 anys</option>
+            <option value="16 anys / S">16 anys / Talla S</option>
+            <option value="M">Talla M Adult</option>
+            <option value="L">Talla L Adult</option>
+          </select>
+        </div>
+
+        {/* Al·lèrgies o Observacions Mèdiques */}
+        <div className="form-group full-width">
+          <label className="form-label" htmlFor="nen-alergies">Al·lèrgies, intoleràncies o medicació (opcional)</label>
+          <input
+            id="nen-alergies"
+            type="text"
+            className="form-input"
+            placeholder="Ex: Al·lèrgia a la penicil·lina, intolerància a la lactosa, o cap observació"
+            value={formData.alergies || ''}
+            onChange={(e) => setFormData({ ...formData, alergies: e.target.value })}
+          />
+        </div>
       </div>
 
       {/* Botó de continuació al pas 2 */}
       <div className="step-actions-footer">
+        <div></div>
         <button
           type="submit"
-          className="btn-hero-primary"
-          style={{ width: '100%', justifyContent: 'center' }}
+          className="btn-step-next"
           id="btn-step1-continuar"
         >
           <span>Continuar a Dades de Contacte</span>

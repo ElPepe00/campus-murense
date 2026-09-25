@@ -40,9 +40,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onCancel, isFul
       <div className="login-card">
         <div className="login-card-header">
           <img 
-            src="/logo.jpeg" 
+            src="/logo.png" 
             alt="C.D. Murense" 
-            style={{ width: '64px', height: '64px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }}
+            style={{ width: '74px', height: '74px', objectFit: 'contain', margin: '0 auto 14px', display: 'block', filter: 'drop-shadow(0 6px 14px rgba(0, 102, 245, 0.35))' }}
           />
           <h2 className="login-title">Accés de Coordinació i Staff</h2>
           <p className="login-subtitle">Àrea restringida per a administradors i monitors del C.D. Murense</p>

@@ -1,11 +1,10 @@
 // frontend/src/pages/admin/StudentsPage.tsx
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, CheckCircle2, Clock, XCircle, ChevronRight, User } from 'lucide-react';
+import { Search, CheckCircle2, Clock, XCircle, ChevronRight, User } from 'lucide-react';
 import { fetchInscrits, type InscritListItem } from '../../api/campusApi';
 
 interface StudentsPageProps {
   onSelectChild: (id: number) => void;
-  onNewInscripcion: () => void;
 }
 
 const GRUPS_OPTIONS = ['Tots', 'Grup A', 'Grup B', 'Grup C'];
@@ -16,7 +15,6 @@ const GRUPS_OPTIONS = ['Tots', 'Grup A', 'Grup B', 'Grup C'];
  */
 export const StudentsPage: React.FC<StudentsPageProps> = ({
   onSelectChild,
-  onNewInscripcion,
 }) => {
   const [inscrits, setInscrits] = useState<InscritListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,21 +33,12 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({
 
   return (
     <div className="admin-page-container">
-      {/* Capçalera amb títol i botó de nova inscripció */}
+      {/* Capçalera amb títol */}
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Llistat d'Inscrits</h1>
           <p className="admin-page-subtitle">Gestió d'alumnes i grups del Campus d'Estiu C.D. Murense</p>
         </div>
-        <button
-          type="button"
-          className="btn-hero-primary"
-          onClick={onNewInscripcion}
-          style={{ padding: '10px 18px', fontSize: '14px' }}
-        >
-          <Plus size={18} />
-          <span>Nova inscripció</span>
-        </button>
       </div>
 
       {/* Buscador i Filtres de Grups */}

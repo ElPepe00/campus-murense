@@ -10,7 +10,6 @@ import {
   UtensilsCrossed, 
   ShieldCheck, 
   ChevronRight,
-  Calendar,
   Award
 } from 'lucide-react';
 import type { PageTabKey } from '../../components/Navbar';
@@ -48,15 +47,20 @@ export const HomePage: React.FC<HomePageProps> = ({
           </p>
 
           <div className="hero-buttons-row">
-            <button 
-              type="button" 
+            <a 
+              href="/inscripcio" 
               className="btn-hero-primary"
-              onClick={onNavigateToRegistration}
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  onNavigateToRegistration();
+                }
+              }}
               id="btn-hero-inscriute"
             >
               <Plus size={19} strokeWidth={2.6} />
               <span>Inscriu el teu fill/a ara</span>
-            </button>
+            </a>
 
             <button 
               type="button" 
@@ -129,33 +133,15 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 3. Mòduls d'Accés Ràpid per a Famílies */}
+      {/* 3. Seccions Informatives */}
       <div className="dashboard-section-header">
         <div>
-          <h2 className="section-title">Com funciona el procés?</h2>
-          <p className="section-subtitle">Gestiona la participació del teu infant de manera fàcil i ràpida</p>
+          <h2 className="section-title">Informació i Comunicació</h2>
+          <p className="section-subtitle">Consulta els avisos del club i contacta amb els coordinadors</p>
         </div>
       </div>
 
       <section className="modules-grid" style={{ marginBottom: '32px' }}>
-        <div 
-          className="module-card"
-          onClick={onNavigateToRegistration}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="module-card-top">
-            <div className="module-icon-box">
-              <Calendar size={22} />
-            </div>
-            <ChevronRight size={18} className="module-arrow" />
-          </div>
-          <div>
-            <h3 className="module-name">Inscripció en Línia</h3>
-            <p className="module-desc">Selecciona les setmanes, dades de l'infant, contactes d'emergència i serveis addicionals.</p>
-          </div>
-        </div>
-
         <div 
           className="module-card"
           onClick={() => onNavigateTab('noticies')}

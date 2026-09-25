@@ -1,12 +1,11 @@
 // frontend/src/components/AdminTopBar.tsx
 import React from 'react';
-import { Menu, Plus, Globe } from 'lucide-react';
+import { Menu, Globe } from 'lucide-react';
 import type { PageTabKey } from './Navbar';
 
 interface AdminTopBarProps {
   activeTab: PageTabKey;
   onToggleSidebar: () => void;
-  onNewInscripcion: () => void;
   onViewPublicSite: () => void;
   apiConnected?: boolean | null;
 }
@@ -26,7 +25,6 @@ const TAB_TITLES: { [key in PageTabKey]?: string } = {
 export const AdminTopBar: React.FC<AdminTopBarProps> = ({
   activeTab,
   onToggleSidebar,
-  onNewInscripcion,
   onViewPublicSite,
   apiConnected,
 }) => {
@@ -46,7 +44,7 @@ export const AdminTopBar: React.FC<AdminTopBarProps> = ({
 
         <div className="admin-breadcrumb">
           <img 
-            src="/logo.jpeg" 
+            src="/logo.png" 
             alt="C.D. Murense" 
             className="topbar-mini-logo" 
           />
@@ -81,17 +79,6 @@ export const AdminTopBar: React.FC<AdminTopBarProps> = ({
         >
           <Globe size={16} />
           <span className="hide-on-mobile">Web Pública</span>
-        </button>
-
-        {/* Botó acció ràpida */}
-        <button
-          type="button"
-          className="btn-navbar-cta"
-          style={{ padding: '8px 16px', fontSize: '13.5px' }}
-          onClick={onNewInscripcion}
-        >
-          <Plus size={16} strokeWidth={2.6} />
-          <span className="hide-on-mobile">Nova inscripció</span>
         </button>
       </div>
     </header>

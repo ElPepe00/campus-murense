@@ -1,5 +1,5 @@
 // frontend/src/components/Sidebar.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   Home, 
   Users, 
@@ -7,7 +7,6 @@ import {
   CreditCard, 
   FileSpreadsheet, 
   Settings, 
-  Plus, 
   LogOut, 
   Bell, 
   MessageSquare,
@@ -19,7 +18,6 @@ import { useAuth } from '../context/AuthContext';
 interface SidebarProps {
   activeTab: PageTabKey;
   onTabChange: (tab: PageTabKey) => void;
-  onNewInscripcion: () => void;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
 }
@@ -27,7 +25,6 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onTabChange,
-  onNewInscripcion,
   isOpenMobile,
   onCloseMobile,
 }) => {
@@ -37,6 +34,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onTabChange(tab);
     onCloseMobile();
   };
+
+  // Bloquejar el desplaçament del fons quan la sidebar mòbil està oberta
+  useEffect(() => {
+    if (isOpenMobile) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onCloseMobile();
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [isOpenMobile, onCloseMobile]);
 
   return (
     <>
@@ -50,10 +66,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="sidebar-header">
           <div className="sidebar-brand">
             <img 
-              src="/logo.jpeg" 
+              src="/logo.png" 
               alt="C.D. Murense" 
-              className="brand-logo-img" 
-              style={{ width: '40px', height: '40px' }}
+              className="sidebar-brand-logo" 
             />
             <div className="sidebar-brand-text">
               <span className="sidebar-club-name">C.D. MURENSE</span>
@@ -80,21 +95,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="user-name">{usuari?.nom_complet || 'Coordinador'}</span>
             <span className="user-role-badge">{usuari?.rol || 'ADMIN'}</span>
           </div>
-        </div>
-
-        {/* Botó d'acció ràpida */}
-        <div className="sidebar-cta-box">
-          <button 
-            type="button" 
-            className="btn-sidebar-new"
-            onClick={() => {
-              onNewInscripcion();
-              onCloseMobile();
-            }}
-          >
-            <Plus size={18} strokeWidth={2.6} />
-            <span>Nova inscripció</span>
-          </button>
         </div>
 
         {/* Menú de navegació principal */}

@@ -25,7 +25,13 @@ import { fetchCampusStats, type CampusStats } from './api/campusApi';
  */
 function MainAppContent() {
   const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname);
-  const [activeTab, setActiveTab] = useState<PageTabKey>('inici');
+  const [activeTab, setActiveTab] = useState<PageTabKey>(() => {
+    const path = window.location.pathname;
+    if (path === '/inscripcio' || path.startsWith('/inscripcio')) {
+      return 'inscripcio';
+    }
+    return 'inici';
+  });
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
   const [sidebarOpenMobile, setSidebarOpenMobile] = useState<boolean>(false);
   const [apiConnected, setApiConnected] = useState<boolean | null>(null);
@@ -34,19 +40,30 @@ function MainAppContent() {
 
   const isAdminRoute = currentPath.startsWith('/admin');
 
-  // Canvi de ruta amb l'API History del navegador
+  // Canvi de ruta amb l'API History del navegador (/inscripcio, /admin, /)
   const navigateTo = (path: string) => {
     window.history.pushState({}, '', path);
     setCurrentPath(path);
     setSelectedChildId(null);
+    if (path === '/inscripcio' || path.startsWith('/inscripcio')) {
+      setActiveTab('inscripcio');
+    } else if (path === '/' || path === '/admin') {
+      setActiveTab('inici');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Suport als botons d'avançar i retrocedir del navegador
   useEffect(() => {
     const handlePopState = () => {
-      setCurrentPath(window.location.pathname);
+      const path = window.location.pathname;
+      setCurrentPath(path);
       setSelectedChildId(null);
+      if (path === '/inscripcio' || path.startsWith('/inscripcio')) {
+        setActiveTab('inscripcio');
+      } else if (path === '/') {
+        setActiveTab('inici');
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -66,7 +83,7 @@ function MainAppContent() {
       });
   }, []);
 
-  // Gestió del títol de la pestanya del navegador i càrrega de mètriques per a staff
+  // Gestió del títol de la pestanya del navegador segons la ruta
   useEffect(() => {
     if (isAdminRoute) {
       if (isLoggedIn) {
@@ -77,14 +94,16 @@ function MainAppContent() {
       } else {
         document.title = 'Campus C.D. Murense • Accés Staff';
       }
+    } else if (currentPath === '/inscripcio' || activeTab === 'inscripcio') {
+      document.title = "Campus C.D. Murense • Formulari d'Inscripció 2027";
     } else {
       document.title = "Campus C.D. Murense • Campus d'Estiu 2027";
     }
-  }, [isAdminRoute, isLoggedIn, activeTab]);
+  }, [isAdminRoute, isLoggedIn, activeTab, currentPath]);
 
   const handleInscripcioSuccess = (_idInscripcio: number) => {
     alert('Inscripció guardada correctament! Aviat rebràs la confirmació oficial.');
-    setActiveTab('inici');
+    navigateTo('/');
   };
 
   const handleSelectChild = (id: number) => {
@@ -93,6 +112,14 @@ function MainAppContent() {
 
   const handleTabChange = (tab: PageTabKey) => {
     setSelectedChildId(null);
+    if (tab === 'inscripcio') {
+      navigateTo('/inscripcio');
+      return;
+    }
+    if (currentPath === '/inscripcio') {
+      window.history.pushState({}, '', '/');
+      setCurrentPath('/');
+    }
     setActiveTab(tab);
   };
 
@@ -117,7 +144,6 @@ function MainAppContent() {
         <Sidebar
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          onNewInscripcion={() => handleTabChange('inscripcio')}
           isOpenMobile={sidebarOpenMobile}
           onCloseMobile={() => setSidebarOpenMobile(false)}
         />
@@ -126,7 +152,6 @@ function MainAppContent() {
           <AdminTopBar 
             activeTab={activeTab}
             onToggleSidebar={() => setSidebarOpenMobile(!sidebarOpenMobile)}
-            onNewInscripcion={() => handleTabChange('inscripcio')}
             onViewPublicSite={() => {
               setActiveTab('inici');
               navigateTo('/');
@@ -137,7 +162,6 @@ function MainAppContent() {
           <main className="main-content" style={{ maxWidth: '100%', padding: '28px 32px 60px' }}>
             {activeTab === 'inici' && (
               <DashboardPage 
-                onNavigateToRegistration={() => handleTabChange('inscripcio')}
                 onNavigateTab={handleTabChange}
                 stats={stats}
               />
@@ -152,7 +176,6 @@ function MainAppContent() {
               ) : (
                 <StudentsPage 
                   onSelectChild={handleSelectChild}
-                  onNewInscripcion={() => handleTabChange('inscripcio')}
                 />
               )
             )}
@@ -212,14 +235,15 @@ function MainAppContent() {
       <Navbar 
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        onToggleMobileMenu={() => alert('Campus C.D. Murense 2027')}
+        onNavigateToAdmin={() => navigateTo('/admin')}
+        onNavigateToRegistration={() => navigateTo('/inscripcio')}
       />
 
       {/* Contingut públic */}
       <main className="main-content">
         {activeTab === 'inici' && (
           <HomePage 
-            onNavigateToRegistration={() => handleTabChange('inscripcio')}
+            onNavigateToRegistration={() => navigateTo('/inscripcio')}
             onNavigateTab={handleTabChange}
             apiConnected={apiConnected}
           />
@@ -227,7 +251,7 @@ function MainAppContent() {
 
         {activeTab === 'inscripcio' && (
           <RegistrationWizard 
-            onCancel={() => handleTabChange('inici')}
+            onCancel={() => navigateTo('/')}
             onSuccess={handleInscripcioSuccess}
           />
         )}

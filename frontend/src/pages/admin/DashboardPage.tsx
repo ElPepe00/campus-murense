@@ -4,7 +4,6 @@ import {
   Users, 
   CheckCircle2, 
   Coins, 
-  Plus, 
   CalendarCheck, 
   CreditCard, 
   FileSpreadsheet, 
@@ -16,7 +15,6 @@ import type { PageTabKey } from '../../components/Navbar';
 import { useAuth } from '../../context/AuthContext';
 
 interface DashboardPageProps {
-  onNavigateToRegistration: () => void;
   onNavigateTab: (tab: PageTabKey) => void;
   stats?: {
     totalInscritos: number;
@@ -30,7 +28,6 @@ interface DashboardPageProps {
  * Proporciona mètriques clau del campus en temps real i accés directe als mòduls de gestió.
  */
 export const DashboardPage: React.FC<DashboardPageProps> = ({
-  onNavigateToRegistration,
   onNavigateTab,
   stats = {
     totalInscritos: 86,
@@ -75,15 +72,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             >
               <CalendarCheck size={18} />
               <span>Passar Llista Diària</span>
-            </button>
-
-            <button 
-              type="button" 
-              className="btn-hero-secondary"
-              onClick={onNavigateToRegistration}
-            >
-              <Plus size={18} />
-              <span>Nova Inscripció</span>
             </button>
           </div>
         </div>
