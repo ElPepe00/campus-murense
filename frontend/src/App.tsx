@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar, type PageTabKey } from './components/Navbar';
-import { MobileBottomNav } from './components/MobileBottomNav';
 import { Sidebar } from './components/Sidebar';
 import { AdminTopBar } from './components/AdminTopBar';
 import { HomePage } from './pages/public/HomePage';
@@ -159,7 +158,7 @@ function MainAppContent() {
             apiConnected={apiConnected}
           />
 
-          <main className="main-content" style={{ maxWidth: '100%', padding: '28px 32px 60px' }}>
+          <main className="main-content admin-main-content">
             {activeTab === 'inici' && (
               <DashboardPage 
                 onNavigateTab={handleTabChange}
@@ -235,7 +234,6 @@ function MainAppContent() {
       <Navbar 
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        onNavigateToAdmin={() => navigateTo('/admin')}
         onNavigateToRegistration={() => navigateTo('/inscripcio')}
       />
 
@@ -272,12 +270,6 @@ function MainAppContent() {
           </div>
         </div>
       </footer>
-
-      {/* Navegació inferior per a mòbils */}
-      <MobileBottomNav 
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-      />
     </div>
   );
 }

@@ -6,8 +6,7 @@ import {
   Menu,
   Bell,
   MessageSquare,
-  X,
-  ShieldCheck
+  X
 } from 'lucide-react';
 
 export type PageTabKey = 
@@ -26,7 +25,6 @@ interface NavbarProps {
   activeTab: PageTabKey;
   onTabChange: (tab: PageTabKey) => void;
   onToggleMobileMenu?: () => void;
-  onNavigateToAdmin?: () => void;
   onNavigateToRegistration?: () => void;
 }
 
@@ -34,7 +32,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onTabChange,
   onToggleMobileMenu,
-  onNavigateToAdmin,
   onNavigateToRegistration,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -258,23 +255,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="mobile-drawer-footer-text">
             © 2027 Club Esportiu C.D. Murense
           </span>
-          <a 
-            href="/admin" 
-            className="mobile-drawer-admin-link"
-            onClick={(e) => {
-              e.preventDefault();
-              handleCloseMobileMenu();
-              if (onNavigateToAdmin) {
-                onNavigateToAdmin();
-              } else {
-                window.history.pushState({}, '', '/admin');
-                window.dispatchEvent(new PopStateEvent('popstate'));
-              }
-            }}
-          >
-            <ShieldCheck size={16} />
-            <span>Accés Coordinadors (/admin)</span>
-          </a>
         </div>
       </aside>
     </>

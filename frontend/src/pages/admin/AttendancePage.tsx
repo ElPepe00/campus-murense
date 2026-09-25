@@ -17,6 +17,8 @@ import {
   type AssistenciaResponse 
 } from '../../api/campusApi';
 
+const GRUPS_OPTIONS = ['Tots', 'Grup A', 'Grup B', 'Grup C'];
+
 /**
  * Pantalla d'assistència diària per a monitors i coordinació esportiva (Pantalla 5).
  * Permet navegar entre dates, veure el recompte de presents/absents i marcar l'assistència a l'instant.
@@ -28,6 +30,7 @@ export const AttendancePage: React.FC = () => {
   const [assistencia, setAssistencia] = useState<AssistenciaResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedGrup, setSelectedGrup] = useState('Tots');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   useEffect(() => {
@@ -95,9 +98,21 @@ export const AttendancePage: React.FC = () => {
     }
   };
 
-  const filteredList = assistencia?.registres.filter((r) =>
-    r.nom.toLowerCase().includes(search.toLowerCase())
-  ) || [];
+  // Filtrar registres tant per nom/text de cerca com per grup seleccionat
+  const filteredList = (assistencia?.registres || []).filter((r) => {
+    const matchesSearch = r.nom.toLowerCase().includes(search.toLowerCase());
+    const matchesGrup = selectedGrup === 'Tots' || r.grup === selectedGrup;
+    return matchesSearch && matchesGrup;
+  });
+
+  // Recompte dinàmic per al grup seleccionat
+  const groupRegistres = selectedGrup === 'Tots'
+    ? (assistencia?.registres || [])
+    : (assistencia?.registres || []).filter((r) => r.grup === selectedGrup);
+
+  const statsPresents = groupRegistres.filter((r) => r.present).length;
+  const statsAbsents = groupRegistres.length - statsPresents;
+  const statsTotal = groupRegistres.length;
 
   return (
     <div className="admin-page-container">
@@ -136,25 +151,25 @@ export const AttendancePage: React.FC = () => {
       {assistencia && (
         <div className="attendance-summary-grid">
           <div className="attendance-kpi green">
-            <span className="attendance-kpi-num">{assistencia.presentes}</span>
-            <span className="attendance-kpi-label">Presents</span>
+            <span className="attendance-kpi-num">{statsPresents}</span>
+            <span className="attendance-kpi-label">Presents {selectedGrup !== 'Tots' ? `(${selectedGrup})` : ''}</span>
           </div>
 
           <div className="attendance-kpi red">
-            <span className="attendance-kpi-num">{assistencia.ausentes}</span>
-            <span className="attendance-kpi-label">Absents</span>
+            <span className="attendance-kpi-num">{statsAbsents}</span>
+            <span className="attendance-kpi-label">Absents {selectedGrup !== 'Tots' ? `(${selectedGrup})` : ''}</span>
           </div>
 
           <div className="attendance-kpi gray">
-            <span className="attendance-kpi-num">{assistencia.total}</span>
-            <span className="attendance-kpi-label">Total Inscripcions</span>
+            <span className="attendance-kpi-num">{statsTotal}</span>
+            <span className="attendance-kpi-label">Total {selectedGrup === 'Tots' ? 'Inscripcions' : selectedGrup}</span>
           </div>
         </div>
       )}
 
-      {/* Cerca per text de l'infant */}
+      {/* Cerca per text de l'infant i Filtre per Grup */}
       <div className="table-controls-bar" style={{ marginTop: '16px' }}>
-        <div className="search-input-wrapper" style={{ width: '100%', maxWidth: '100%' }}>
+        <div className="search-input-wrapper">
           <Search size={18} className="search-icon" />
           <input
             type="text"
@@ -163,6 +178,19 @@ export const AttendancePage: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+        </div>
+
+        <div className="group-tabs-filter" role="tablist" aria-label="Filtrar per grup">
+          {GRUPS_OPTIONS.map((grup) => (
+            <button
+              key={grup}
+              type="button"
+              className={`group-filter-pill ${selectedGrup === grup ? 'active' : ''}`}
+              onClick={() => setSelectedGrup(grup)}
+            >
+              {grup}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -218,7 +246,7 @@ export const AttendancePage: React.FC = () => {
                       </div>
                     </td>
                     <td>
-                      <span className="group-badge">{nen.grup}</span>
+                      <span className={`group-badge ${nen.grup.toLowerCase().replace(' ', '-')}`}>{nen.grup}</span>
                     </td>
                     <td>
                       <span className="time-pill">
