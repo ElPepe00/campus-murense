@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL", 
-    "postgresql://murense_user:supersecretpassword@db:5432/campus_db"
+    "sqlite:///./campus.db"
 )
 
 # Compatibilitat amb proveïdors cloud (Render, Heroku, Supabase, Neon) que usen el prefix 'postgres://'

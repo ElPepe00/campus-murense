@@ -90,7 +90,7 @@ function MainAppContent() {
         document.title = 'Campus C.D. Murense • Panell Staff';
         fetchCampusStats()
           .then((data) => setStats(data))
-          .catch(() => {});
+          .catch(() => { });
       } else {
         document.title = 'Campus C.D. Murense • Accés Staff';
       }
@@ -130,7 +130,7 @@ function MainAppContent() {
     // Si l'usuari no està autenticat, mostrem la pàgina d'inici de sessió dedicada
     if (!isLoggedIn) {
       return (
-        <LoginPage 
+        <LoginPage
           isFullPage
           onSuccess={() => navigateTo('/admin')}
           onCancel={() => navigateTo('/')}
@@ -149,7 +149,7 @@ function MainAppContent() {
         />
 
         <div className="admin-main-wrapper">
-          <AdminTopBar 
+          <AdminTopBar
             activeTab={activeTab}
             onToggleSidebar={() => setSidebarOpenMobile(!sidebarOpenMobile)}
             onViewPublicSite={() => {
@@ -161,7 +161,7 @@ function MainAppContent() {
 
           <main className="main-content admin-main-content">
             {activeTab === 'inici' && (
-              <DashboardPage 
+              <DashboardPage
                 onNavigateTab={handleTabChange}
                 stats={stats}
               />
@@ -169,12 +169,12 @@ function MainAppContent() {
 
             {activeTab === 'admin-inscripcions' && (
               selectedChildId ? (
-                <StudentDetailPage 
-                  childId={selectedChildId} 
-                  onBack={() => setSelectedChildId(null)} 
+                <StudentDetailPage
+                  childId={selectedChildId}
+                  onBack={() => setSelectedChildId(null)}
                 />
               ) : (
-                <StudentsPage 
+                <StudentsPage
                   onSelectChild={handleSelectChild}
                 />
               )
@@ -185,7 +185,7 @@ function MainAppContent() {
             {activeTab === 'admin-informes' && <ReportsPage />}
             {activeTab === 'admin-configuracio' && <SettingsPage />}
             {activeTab === 'inscripcio' && (
-              <RegistrationWizard 
+              <RegistrationWizard
                 onCancel={() => handleTabChange('inici')}
                 onSuccess={handleInscripcioSuccess}
               />
@@ -209,15 +209,15 @@ function MainAppContent() {
           <div className="staff-preview-content">
             <span>🛡️ Sessió d'administrador iniciada: <strong>{usuari?.nom_complet}</strong></span>
             <div className="staff-preview-actions">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn-staff-pill"
                 onClick={() => navigateTo('/admin')}
               >
                 Anar al Panell d'Administració (/admin)
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn-staff-ghost"
                 onClick={() => {
                   logout();
@@ -232,7 +232,7 @@ function MainAppContent() {
       )}
 
       {/* Barra de navegació pública */}
-      <Navbar 
+      <Navbar
         activeTab={activeTab}
         onTabChange={handleTabChange}
         onNavigateToRegistration={() => navigateTo('/inscripcio')}
@@ -241,7 +241,7 @@ function MainAppContent() {
       {/* Contingut públic */}
       <main className="main-content">
         {activeTab === 'inici' && (
-          <HomePage 
+          <HomePage
             onNavigateToRegistration={() => navigateTo('/inscripcio')}
             onNavigateTab={handleTabChange}
             apiConnected={apiConnected}
@@ -249,7 +249,7 @@ function MainAppContent() {
         )}
 
         {activeTab === 'inscripcio' && (
-          <RegistrationWizard 
+          <RegistrationWizard
             onCancel={() => navigateTo('/')}
             onSuccess={handleInscripcioSuccess}
           />
