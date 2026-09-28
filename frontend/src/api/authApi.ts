@@ -1,5 +1,5 @@
 // frontend/src/api/authApi.ts
-import { apiClient } from './client';
+import { apiClient, API_BASE_URL } from './client';
 import type { LoginResponse, Usuari } from '../types/auth';
 
 export async function loginStaff(username: string, password: string): Promise<LoginResponse> {
@@ -7,7 +7,6 @@ export async function loginStaff(username: string, password: string): Promise<Lo
   formData.append('username', username);
   formData.append('password', password);
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: {

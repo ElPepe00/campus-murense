@@ -130,3 +130,11 @@ export async function toggleEstatPago(inscripcioId: number) {
     method: 'PATCH',
   });
 }
+
+export async function submitInscripcio(formData: unknown): Promise<{ status: string; inscripcioId?: number; jugadorId?: number }> {
+  return apiClient<{ status: string; inscripcioId?: number; jugadorId?: number }>('/api/campus/inscripcions', {
+    method: 'POST',
+    body: JSON.stringify(formData),
+  });
+}
+

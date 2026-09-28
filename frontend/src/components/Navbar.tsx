@@ -6,7 +6,8 @@ import {
   Menu,
   Bell,
   MessageSquare,
-  X
+  X,
+  ShieldCheck
 } from 'lucide-react';
 
 export type PageTabKey = 
@@ -131,6 +132,22 @@ export const Navbar: React.FC<NavbarProps> = ({
               <MessageSquare size={17} />
               <span>Contacte</span>
             </button>
+
+            <a
+              href="/admin"
+              className="nav-link-btn staff-portal-btn"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  window.history.pushState({}, '', '/admin');
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                }
+              }}
+              title="Accés Staff & Panell Administració"
+            >
+              <ShieldCheck size={16} />
+              <span>Accés Staff</span>
+            </a>
           </nav>
 
           {/* Navbar Actions: Únic botó blau d'inscripció al header redirigit a /inscripcio */}
@@ -231,6 +248,24 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <span>Contacte</span>
           </button>
+
+          <a
+            href="/admin"
+            className="mobile-drawer-item"
+            onClick={(e) => {
+              handleCloseMobileMenu();
+              if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                e.preventDefault();
+                window.history.pushState({}, '', '/admin');
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }
+            }}
+          >
+            <div className="mobile-drawer-icon-wrap">
+              <ShieldCheck size={20} />
+            </div>
+            <span>Accés Staff & Coordinació</span>
+          </a>
         </nav>
 
         <div className="mobile-drawer-cta-section">

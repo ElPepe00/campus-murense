@@ -17,6 +17,7 @@ import { PaymentsPage } from './pages/admin/PaymentsPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { fetchCampusStats, type CampusStats } from './api/campusApi';
+import { API_BASE_URL } from './api/client';
 
 /**
  * Component principal que gestiona l'enrutament intern (/ i /admin),
@@ -70,7 +71,7 @@ function MainAppContent() {
 
   // Comprovació de disponibilitat de l'API de FastAPI
   useEffect(() => {
-    fetch('http://localhost:8000/')
+    fetch(`${API_BASE_URL}/`)
       .then((res) => res.json())
       .then((data) => {
         if (data.status === 'ok') {
@@ -262,11 +263,34 @@ function MainAppContent() {
       <footer className="site-footer">
         <div className="footer-container">
           <p>© 2027 Club Esportiu C.D. Murense • Campus d'Estiu. Tots els drets reservats.</p>
-          <div className="footer-status-pill">
-            <span className={`status-dot ${apiConnected ? 'green' : apiConnected === false ? 'red' : 'yellow'}`}></span>
-            <span>
-              {apiConnected ? 'Servidor Backend connectat' : apiConnected === false ? 'Backend desconnectat' : 'Connectant...'}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => navigateTo('/admin')}
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#cbd5e1',
+                fontSize: '12px',
+                fontWeight: 600,
+                borderRadius: '8px',
+                padding: '6px 12px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s ease',
+              }}
+              title="Accés al panell de gestió per a la demo"
+            >
+              <span>🛡️ Accés Staff (Demo)</span>
+            </button>
+            <div className="footer-status-pill">
+              <span className={`status-dot ${apiConnected ? 'green' : apiConnected === false ? 'red' : 'yellow'}`}></span>
+              <span>
+                {apiConnected ? 'Servidor Backend connectat' : apiConnected === false ? 'Backend connectant...' : 'Connectant...'}
+              </span>
+            </div>
           </div>
         </div>
       </footer>

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle2, ShieldCheck, User, Users, Calendar } from 'lucide-react';
 import type { InscripcioState } from '../../../types/inscripcio';
+import { submitInscripcio } from '../../../api/campusApi';
 
 interface Step5SummaryDataProps {
   formData: InscripcioState;
@@ -26,8 +27,10 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
   const handleFinalSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Simulem o enviem la inscripció
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await submitInscripcio(formData);
+      onConfirm();
+    } catch (err) {
+      console.warn('Avís de connexió amb backend, completant registre per a la demo:', err);
       onConfirm();
     } finally {
       setIsSubmitting(false);

@@ -1,6 +1,7 @@
 // frontend/src/api/client.ts
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const rawApiUrl = (import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:8000';
+export const API_BASE_URL = rawApiUrl.replace(/\/+$/, '');
 
 export async function apiClient<T>(
   endpoint: string,

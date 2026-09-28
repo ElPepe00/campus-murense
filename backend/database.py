@@ -8,8 +8,19 @@ DATABASE_URL = os.getenv(
     "postgresql://murense_user:supersecretpassword@db:5432/campus_db"
 )
 
-# Creació del motor de connexió a PostgreSQL
-engine = create_engine(DATABASE_URL)
+# Compatibilitat amb proveïdors cloud (Render, Heroku, Supabase, Neon) que usen el prefix 'postgres://'
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+connect_args = {}
+engine_kwargs = {"pool_pre_ping": True}
+
+if DATABASE_URL.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
+    engine_kwargs.pop("pool_pre_ping", None)
+
+# Creació del motor de connexió a la base de dades
+engine = create_engine(DATABASE_URL, connect_args=connect_args, **engine_kwargs)
 
 # Creador de sessions locals
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -22,4 +33,4 @@ def get_db():
     try:
         yield db
     finally:
-        db.close()
+        db.close()

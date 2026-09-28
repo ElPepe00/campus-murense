@@ -286,3 +286,164 @@ def canviar_estat_pagament(
 
     db.commit()
     return {"status": "ok", "nouEstat": inscripcio.estat_pagament.value}
+
+
+# --- 6. Recepció d'Inscripcions Públiques (Formulari Wizard de Famílies) ---
+@router.post("/inscripcions")
+def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
+    try:
+        nen_data = dades.get("nen", {})
+        tutor_data = dades.get("tutor", {})
+        serveis_data = dades.get("serveis", {})
+        autoritzacions_data = dades.get("autoritzacions", {})
+        autoritzats_list = dades.get("autoritzats", [])
+
+        # 1. Obtenir o crear edició activa
+        edicio = db.query(models.EdicioActivitat).filter_by(activa=True).first()
+        if not edicio:
+            edicio = models.EdicioActivitat(
+                nom="Campus d'Estiu 2027",
+                any=2027,
+                data_inici=date(2027, 6, 23),
+                data_fi=date(2027, 7, 31),
+                activa=True
+            )
+            db.add(edicio)
+            db.commit()
+            db.refresh(edicio)
+
+        # 2. Gestionar Tutor (cercar si ja existeix pel correu o crear nou)
+        email_tutor = tutor_data.get("email", "").strip().lower()
+        tutor = None
+        if email_tutor:
+            tutor = db.query(models.Tutor).filter(models.Tutor.email == email_tutor).first()
+
+        if not tutor:
+            tutor = models.Tutor(
+                nom_complet=tutor_data.get("nomComplet", "Tutor sense nom"),
+                email=email_tutor or f"tutor_{datetime.now().timestamp()}@campusmurense.cat",
+                telefon_principal=tutor_data.get("telefonPrincipal", "600000000"),
+                telefon_secundari=tutor_data.get("telefonSecundari"),
+                es_tutor_legal=True
+            )
+            db.add(tutor)
+            db.commit()
+            db.refresh(tutor)
+
+        # 3. Calcular edat i data de naixement
+        data_naix_str = nen_data.get("dataNaixement")
+        data_naix = date(2016, 1, 1)
+        edat = 9
+        if data_naix_str:
+            try:
+                data_naix = datetime.strptime(data_naix_str, "%Y-%m-%d").date()
+                avui = date.today()
+                edat = avui.year - data_naix.year - ((avui.month, avui.day) < (data_naix.month, data_naix.day))
+            except Exception:
+                pass
+
+        # Determinar grup per edat (A: 4-7, B: 8-11, C: 12-14)
+        if edat <= 7:
+            grup_assignat = "Grup A"
+        elif edat <= 11:
+            grup_assignat = "Grup B"
+        else:
+            grup_assignat = "Grup C"
+
+        nom_nen = f"{nen_data.get('nom', '')} {nen_data.get('cognoms', '')}".strip() or "Alumne Nou"
+        dni_infant = nen_data.get("dni") or tutor_data.get("dni") or f"REG{int(datetime.now().timestamp())%100000}"
+
+        # 4. Crear Jugador
+        jugador = models.Jugador(
+            tutor_id=tutor.id,
+            nom_complet=nom_nen,
+            dni=dni_infant,
+            data_naixement=data_naix,
+            edat=edat,
+            poblacio="Muro",
+            club_procedencia="C.D. MURENSE",
+            alergies=nen_data.get("alergies") or "Cap al·lèrgia declarada",
+            malalties=None,
+            talla_roba=nen_data.get("tallaRoba", "10-12")
+        )
+        db.add(jugador)
+        db.commit()
+        db.refresh(jugador)
+
+        # 5. Afegir Persones Autoritzades
+        for a in autoritzats_list:
+            if a.get("nomComplet"):
+                persona = models.PersonaAutoritzada(
+                    jugador_id=jugador.id,
+                    nom_complet=a.get("nomComplet"),
+                    dni=a.get("dni", "N/A"),
+                    parentiu=a.get("parentiu", "Familiar")
+                )
+                db.add(persona)
+
+        # 6. Càlcul de preu
+        setmanes = serveis_data.get("setmanes", [1])
+        num_setmanes = len(setmanes) if isinstance(setmanes, list) and len(setmanes) > 0 else 1
+        base_preu = num_setmanes * 65.0
+        menjador_preu = (num_setmanes * 35.0) if serveis_data.get("menjador") else 0.0
+        matinera_preu = (num_setmanes * 15.0) if serveis_data.get("matinera") else 0.0
+        preu_total = base_preu + menjador_preu + matinera_preu
+
+        # Servei piscina enum
+        piscina_val = serveis_data.get("piscina", "SI")
+        if piscina_val == "SI_MANIGUETS":
+            piscina_enum = models.ServeiPiscinaEnum.SI_MANIGUETS
+        elif piscina_val == "NO":
+            piscina_enum = models.ServeiPiscinaEnum.NO
+        else:
+            piscina_enum = models.ServeiPiscinaEnum.SI
+
+        # 7. Crear Inscripció
+        inscripcio = models.Inscripcio(
+            jugador_id=jugador.id,
+            edicio_id=edicio.id,
+            grup_assignat=grup_assignat,
+            autoritzacio_imatges=bool(autoritzacions_data.get("imatges", True)),
+            autoritzacio_sortir_sol=bool(autoritzacions_data.get("sortirSol", False)),
+            autoritzacio_sortides=bool(autoritzacions_data.get("sortides", True)),
+            servei_piscina=piscina_enum,
+            servei_menjador=bool(serveis_data.get("menjador", False)),
+            intolerancies_menjador=nen_data.get("alergies") if "lactosa" in (nen_data.get("alergies") or "").lower() else None,
+            servei_matinera=bool(serveis_data.get("matinera", False)),
+            excursio_30_06=bool(serveis_data.get("excursio1", False)),
+            excursio_07_07=bool(serveis_data.get("excursio2", False)),
+            setmanes_contractades=num_setmanes,
+            descompte_aplicat=models.TipusDescompteEnum.MURENSE,
+            preu_total=preu_total,
+            estat_pagament=models.EstatPagamentEnum.PENDENT
+        )
+        db.add(inscripcio)
+        db.commit()
+        db.refresh(inscripcio)
+
+        # 8. Registre d'assistència inicial per a la data d'avui (permet marcatge immediat a demo)
+        avui = date.today()
+        registre_inicial = models.RegistreAssistencia(
+            jugador_id=jugador.id,
+            data=avui,
+            estat=models.EstatAssistenciaEnum.ABSENT,
+            hora_entrada=None,
+            hora_sortida=None,
+            observacions="Inscrit recentment des del portal web"
+        )
+        db.add(registre_inicial)
+        db.commit()
+
+        return {
+            "status": "ok",
+            "inscripcioId": inscripcio.id,
+            "jugadorId": jugador.id,
+            "nom": jugador.nom_complet,
+            "grup": grup_assignat,
+            "preuTotal": preu_total,
+            "message": "Inscripció guardada satisfactòriament"
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error registrant la inscripció: {str(e)}")
+
