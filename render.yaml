@@ -1,33 +1,19 @@
 services:
-  # 1. Backend API (FastAPI en Python)
   - type: web
-    name: campus-murense-backend
-    runtime: python
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    name: campus-murense
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: frankfurt
     plan: free
     autoDeploy: true
     envVars:
       - key: DATABASE_URL
-        sync: false
+        sync: false          # Introduir manualment al Dashboard de Render
       - key: SECRET_KEY
-        generateValue: true
+        generateValue: true  # Render genera una clau aleatòria segura automàticament
       - key: ADMIN_DEFAULT_PASSWORD
         value: ClaveInicialSegura2027!
       - key: AUTO_SEED
         value: "true"
-
-  # 2. Frontend (React + Vite SPA)
-  - type: web
-    name: campus-murense-frontend
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    plan: free
-    autoDeploy: true
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+      - key: PORT
+        value: "8000"

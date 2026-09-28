@@ -1,11 +1,16 @@
-# Environment variables
+# ============================================================
+# .gitignore — Campus C.D. Murense
+# ============================================================
+
+# ── Variables d'entorn (secrets) ────────────────────────────
 .env
 .env.local
 .env.*.local
+# Permet fitxers d'exemple (sense secrets reals)
 !.env.example
 !*.example
 
-# Python / Backend
+# ── Python / Backend ─────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
@@ -16,7 +21,6 @@ venv/
 .venv/
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -29,19 +33,37 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
-# Database / Local storage
+# SQLite local (dades de dev, no de producció)
 *.sqlite3
 *.db
+campus.db
+
+# ── Base de dades local Docker ───────────────────────────────
 postgres_data/
 
-# Node / Frontend
+# ── Node / Frontend ──────────────────────────────────────────
 node_modules/
 dist/
+dist-ssr/
 .vite/
+*.local
 
-# IDE / OS
+# ── Logs ─────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── IDE / Editor ─────────────────────────────────────────────
 .vscode/
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── Sistema operatiu ─────────────────────────────────────────
 .DS_Store
 Thumbs.db

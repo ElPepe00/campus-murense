@@ -1,77 +1,174 @@
 # backend/main.py
 import os
-from fastapi import FastAPI
+import logging
+import sys
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+# ---------------------------------------------------------------------------
+# Validació d'entorn obligatòria en arrencar
+# ---------------------------------------------------------------------------
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
+    logging.warning(
+        "[AVÍS] SECRET_KEY no definida. Usant clau per defecte per a la demo. "
+        "Defineix SECRET_KEY com a variable d'entorn en producció."
+    )
+    os.environ["SECRET_KEY"] = "campus_murense_demo_fallback_secret_key_not_for_production"
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
+    logging.warning(
+        "[AVÍS] DATABASE_URL no definida. Usant SQLite local (campus.db). "
+        "Defineix DATABASE_URL com a variable d'entorn en producció per usar PostgreSQL."
+    )
+
 from database import engine, Base, SessionLocal
 import models, security
 from routers import auth_router, campus_router
 from seed_data import seed
 
-app = FastAPI(title="API Campus C.D. Murense")
+# ---------------------------------------------------------------------------
+# App FastAPI
+# ---------------------------------------------------------------------------
+app = FastAPI(
+    title="API Campus C.D. Murense",
+    description="API de gestió del Campus d'Estiu del Club Esportiu C.D. Murense",
+    version="1.0.0-beta",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+)
 
-# Configuració dinàmica de CORS per a desenvolupament local i desplegaments (Vercel, Render, etc.)
-raw_allowed_origins = os.getenv("ALLOWED_ORIGINS", "")
-allowed_origins = [
+# ---------------------------------------------------------------------------
+# CORS — dinàmic per a dev local + Render + Vercel + Netlify
+# ---------------------------------------------------------------------------
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "")
+_allowed_origins: list[str] = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
-if raw_allowed_origins:
-    for origin in raw_allowed_origins.split(","):
-        o = origin.strip()
-        if o and o not in allowed_origins:
-            allowed_origins.append(o)
+for _o in _raw_origins.split(","):
+    _o = _o.strip()
+    if _o and _o not in _allowed_origins:
+        _allowed_origins.append(_o)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.onrender\.com|https://.*\.netlify\.app|http://localhost:.*|http://127\.0\.0\.1:.*",
+    allow_origins=_allowed_origins,
+    allow_origin_regex=(
+        r"https://.*\.vercel\.app"
+        r"|https://.*\.onrender\.com"
+        r"|https://.*\.netlify\.app"
+        r"|http://localhost:\d+"
+        r"|http://127\.0\.0\.1:\d+"
+    ),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# ---------------------------------------------------------------------------
+# Routers d'API
+# ---------------------------------------------------------------------------
 app.include_router(auth_router.router)
 app.include_router(campus_router.router)
 
 
+# ---------------------------------------------------------------------------
+# Lifecycle: creació de taules + admin + seed
+# ---------------------------------------------------------------------------
 @app.on_event("startup")
-def inicialitzar_app():
-    # Assegurar que les taules estiguin creades
-    Base.metadata.create_all(bind=engine)
+def inicialitzar_app() -> None:
+    logging.basicConfig(
+        stream=sys.stdout,
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+    )
+    log = logging.getLogger(__name__)
+
+    try:
+        Base.metadata.create_all(bind=engine)
+        log.info("Taules de la base de dades verificades/creades.")
+    except Exception as exc:
+        log.error(f"Error creant taules: {exc}")
+        return
+
     db = SessionLocal()
     try:
-        admin_existent = db.query(models.Usuari).filter(
+        admin = db.query(models.Usuari).filter(
             models.Usuari.email == "admin@cdmurense.com"
         ).first()
-        
-        if not admin_existent:
-            admin_password = os.getenv("ADMIN_DEFAULT_PASSWORD", "ClaveInicialSegura2027!")
-            admin_inicial = models.Usuari(
+        if not admin:
+            pwd = os.getenv("ADMIN_DEFAULT_PASSWORD", "ClaveInicialSegura2027!")
+            db.add(models.Usuari(
                 nom_complet="Coordinador Campus",
                 email="admin@cdmurense.com",
-                password_hash=security.get_password_hash(admin_password),
+                password_hash=security.get_password_hash(pwd),
                 rol=models.RolUsuariEnum.ADMIN,
-                actiu=True
-            )
-            db.add(admin_inicial)
+                actiu=True,
+            ))
             db.commit()
+            log.info("Usuari admin creat: admin@cdmurense.com")
+        else:
+            log.info("Usuari admin ja existeix.")
+    except Exception as exc:
+        log.error(f"Error creant admin: {exc}")
+        db.rollback()
     finally:
         db.close()
 
-    # Pre-carregar dades de prova per a la demo si la base de dades és nova
-    auto_seed = os.getenv("AUTO_SEED", "true").lower() in ("true", "1", "yes")
-    if auto_seed:
+    if os.getenv("AUTO_SEED", "true").lower() in ("true", "1", "yes"):
         try:
             seed()
-        except Exception as e:
-            print(f"Avís inicialitzant seed data: {e}")
+            log.info("Seed data carregada.")
+        except Exception as exc:
+            log.warning(f"Seed data (avís, no crític): {exc}")
 
-@app.get("/")
-def read_root():
-    return {"status": "ok", "message": "API del Campus C.D. Murense funcionant correctament"}
 
-@app.get("/health")
+# ---------------------------------------------------------------------------
+# Health-check (Render el necessita per verificar que el servei arrenca bé)
+# ---------------------------------------------------------------------------
+@app.get("/health", tags=["Sistema"], include_in_schema=False)
 def health_check():
     return {"status": "healthy"}
+
+
+# ---------------------------------------------------------------------------
+# Servei de la SPA de React (mode All-in-One)
+# Quan el Dockerfile copia dist/ a backend/static/, FastAPI serveix la web.
+# ---------------------------------------------------------------------------
+_static_dir = os.path.join(os.path.dirname(__file__), "static")
+
+if os.path.isdir(_static_dir):
+    _assets_dir = os.path.join(_static_dir, "assets")
+    if os.path.isdir(_assets_dir):
+        app.mount("/assets", StaticFiles(directory=_assets_dir), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def serve_spa(full_path: str):
+        # No interceptar endpoints d'API ni docs
+        if (
+            full_path.startswith("api/")
+            or full_path in ("health", "docs", "redoc", "openapi.json")
+        ):
+            raise HTTPException(status_code=404, detail="Not Found")
+        target = os.path.join(_static_dir, full_path)
+        if full_path and os.path.isfile(target):
+            return FileResponse(target)
+        # SPA fallback → index.html
+        return FileResponse(os.path.join(_static_dir, "index.html"))
+else:
+    @app.get("/", include_in_schema=False)
+    def read_root():
+        return {
+            "status": "ok",
+            "message": "API del Campus C.D. Murense funcionant correctament",
+            "docs": "/api/docs",
+        }
