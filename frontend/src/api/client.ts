@@ -1,6 +1,13 @@
 // frontend/src/api/client.ts
 
-const rawApiUrl = (import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:8000';
+// En producció (Render all-in-one), el frontend és servit per FastAPI al mateix host.
+// Les crides a l'API han de ser relatives (URL buida), no 'http://localhost:8000'.
+// En dev (npm run dev), s'usa 'http://localhost:8000' com a fallback.
+// Si VITE_API_URL està definida explícitament (qualsevol entorn), s'usa aquell valor.
+const rawApiUrl: string =
+  (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
+  (import.meta.env.PROD ? '' : 'http://localhost:8000');
+
 export const API_BASE_URL = rawApiUrl.replace(/\/+$/, '');
 
 export async function apiClient<T>(
