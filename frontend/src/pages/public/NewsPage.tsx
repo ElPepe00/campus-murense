@@ -1,7 +1,6 @@
 // frontend/src/pages/public/NewsPage.tsx
 import React, { useState, useEffect } from 'react';
 import { 
-  Bell, 
   Calendar, 
   Sparkles, 
   Trophy, 
@@ -219,19 +218,14 @@ export const NewsPage: React.FC = () => {
     <div className="noticias-page-container">
       {/* Capçalera de la pàgina */}
       <div className="page-header-box">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '8px' }}>
-          <div className="badge-pill">
-            <Bell size={14} />
-            <span>Tauler de Notícies i Avisos</span>
-          </div>
-
-          {isLoggedIn && (
+        {isLoggedIn && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#065f46', background: '#ecfdf5', padding: '4px 10px', borderRadius: '999px', fontWeight: 600 }}>
               <ShieldCheck size={14} />
               <span>Mode Administrador ({usuari?.rol || 'Staff'})</span>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
           <div>

@@ -1,6 +1,6 @@
 // frontend/src/pages/public/ContactPage.tsx
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Send, CheckCircle2 } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, CheckCircle2, Clock } from 'lucide-react';
 
 interface ContactFormData {
   nom: string;
@@ -71,7 +71,7 @@ export const ContactPage: React.FC = () => {
                   id="contacto-nom"
                   type="text"
                   className="form-input"
-                  placeholder="El teu nom"
+                  placeholder="El teu nom i cognoms"
                   value={form.nom}
                   onChange={(e) => setForm({ ...form, nom: e.target.value })}
                   required
@@ -121,9 +121,9 @@ export const ContactPage: React.FC = () => {
                 <label className="form-label" htmlFor="contacto-missatge">Missatge *</label>
                 <textarea
                   id="contacto-missatge"
-                  rows={4}
+                  rows={5}
                   className="form-textarea"
-                  placeholder="Escriu aquí la teva consulta..."
+                  placeholder="Escriu aquí la teva consulta detallada..."
                   value={form.missatge}
                   onChange={(e) => setForm({ ...form, missatge: e.target.value })}
                   required
@@ -132,7 +132,7 @@ export const ContactPage: React.FC = () => {
 
               <button type="submit" className="btn-hero-primary" style={{ width: '100%', justifyContent: 'center' }}>
                 <Send size={18} />
-                <span>Enviar missatge a administració</span>
+                <span>Enviar missatge a coordinació</span>
               </button>
             </form>
           )}
@@ -146,6 +146,20 @@ export const ContactPage: React.FC = () => {
           <p style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.6, marginBottom: '24px' }}>
             Estam a la teva disposició per a resoldre qualsevol detall administratiu de la inscripció dels teus fills.
           </p>
+
+          <div className="contacto-info-item">
+            <div className="contacto-icon-pill">
+              <Clock size={20} color="#0066f5" />
+            </div>
+            <div>
+              <strong>Horari d'oficina del club</strong>
+              <div style={{ marginTop: '5px', fontSize: '13px', color: '#475569', lineHeight: 1.6 }}>
+                <div>• <strong>Dilluns:</strong> 18:30h - 20:00h</div>
+                <div>• <strong>Dimarts:</strong> 19:00h - 20:30h</div>
+                <div>• <strong>Dimecres:</strong> 18:30h - 20:00h</div>
+              </div>
+            </div>
+          </div>
 
           <div className="contacto-info-item">
             <div className="contacto-icon-pill">

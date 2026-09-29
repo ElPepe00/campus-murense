@@ -1,5 +1,6 @@
 // frontend/src/App.tsx
 import { useState, useEffect } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar, type PageTabKey } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
@@ -263,34 +264,21 @@ function MainAppContent() {
       <footer className="site-footer">
         <div className="footer-container">
           <p>© 2027 Club Esportiu C.D. Murense • Campus d'Estiu. Tots els drets reservats.</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => navigateTo('/admin')}
-              style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                color: '#cbd5e1',
-                fontSize: '12px',
-                fontWeight: 600,
-                borderRadius: '8px',
-                padding: '6px 12px',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s ease',
+          <div className="footer-links-group">
+            <a
+              href="/admin"
+              className="footer-staff-link"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  navigateTo('/admin');
+                }
               }}
-              title="Accés al panell de gestió per a la demo"
+              title="Accés Staff i Panell de Gestió"
             >
-              <span>🛡️ Accés Staff (Demo)</span>
-            </button>
-            <div className="footer-status-pill">
-              <span className={`status-dot ${apiConnected ? 'green' : apiConnected === false ? 'red' : 'yellow'}`}></span>
-              <span>
-                {apiConnected ? 'Servidor Backend connectat' : apiConnected === false ? 'Backend connectant...' : 'Connectant...'}
-              </span>
-            </div>
+              <ShieldCheck size={14} />
+              <span>Accés Staff</span>
+            </a>
           </div>
         </div>
       </footer>

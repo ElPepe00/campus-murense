@@ -589,26 +589,32 @@ body {
   gap: 12px;
 }
 
-.footer-status-pill {
+.footer-links-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer-staff-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: 6px;
+  font-size: 12.5px;
   font-weight: 600;
-  background: #f1f5f9;
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #f8fafc;
+  transition: all 0.2s ease;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.footer-staff-link:hover {
+  color: var(--primary);
+  background: #eff6ff;
+  border-color: #bfdbfe;
 }
-
-.status-dot.green { background-color: var(--success); }
-.status-dot.red { background-color: var(--danger); }
-.status-dot.yellow { background-color: var(--warning); }
 
 
 
@@ -1598,6 +1604,63 @@ body {
   box-shadow: var(--shadow-card);
 }
 
+/* Contact Form Spacing & Layout */
+.contacto-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.contacto-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.contacto-form .form-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0;
+}
+
+.contacto-form .form-input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 14.5px;
+  color: var(--text-main);
+  background: #ffffff;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.contacto-form .form-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 14.5px;
+  color: var(--text-main);
+  background: #ffffff;
+  transition: all 0.2s ease;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.contacto-form .form-input:focus,
+.contacto-form .form-textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 102, 245, 0.12);
+  outline: none;
+}
+
 .form-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1607,6 +1670,7 @@ body {
 @media (max-width: 600px) {
   .form-grid-2 {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
 }
 

@@ -2,7 +2,6 @@
 import React from 'react';
 import { 
   Plus, 
-  Sparkles, 
   Bell, 
   MessageSquare, 
   Shirt, 
@@ -10,7 +9,9 @@ import {
   UtensilsCrossed, 
   ShieldCheck, 
   ChevronRight,
-  Award
+  Award,
+  Activity,
+  Clock
 } from 'lucide-react';
 import type { PageTabKey } from '../../components/Navbar';
 
@@ -33,11 +34,6 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 1. Banner Principal (Hero) */}
       <section className="dashboard-hero">
         <div className="hero-content-col">
-          <div className="hero-pill-badge">
-            <Sparkles size={14} />
-            <span>Campus d'Estiu 2027 • C.D. Murense</span>
-          </div>
-
           <h1 className="hero-heading">
             Viu l'estiu més esportiu al <span>C.D. Murense</span>
           </h1>
@@ -61,15 +57,6 @@ export const HomePage: React.FC<HomePageProps> = ({
               <Plus size={19} strokeWidth={2.6} />
               <span>Inscriu el teu fill/a ara</span>
             </a>
-
-            <button 
-              type="button" 
-              className="btn-hero-secondary"
-              onClick={() => onNavigateTab('noticies')}
-            >
-              <Bell size={17} />
-              <span>Consultar notícies</span>
-            </button>
           </div>
         </div>
 
@@ -87,18 +74,48 @@ export const HomePage: React.FC<HomePageProps> = ({
       <div className="dashboard-section-header">
         <div>
           <h2 className="section-title">Què inclou el nostre Campus?</h2>
-          <p className="section-subtitle">Tots els serveis pensats per a la comoditat de les famílies</p>
+          <p className="section-subtitle">Tots els serveis i activitats pensats per al desenvolupament esportiu i la comoditat familiar</p>
         </div>
       </div>
 
       <section className="stats-grid" style={{ marginBottom: '36px' }}>
         <div className="stat-card blue" style={{ cursor: 'default' }}>
           <div className="stat-icon-box">
+            <Activity size={26} strokeWidth={2.2} />
+          </div>
+          <div className="stat-info-col">
+            <span className="stat-value" style={{ fontSize: '18px' }}>Futbol & Multiesport</span>
+            <span className="stat-title">Tecnificació diària, partits i jocs d'equip amb entrenadors titulats</span>
+          </div>
+        </div>
+
+        <div className="stat-card blue" style={{ cursor: 'default' }}>
+          <div className="stat-icon-box">
             <Waves size={26} strokeWidth={2.2} />
           </div>
           <div className="stat-info-col">
             <span className="stat-value" style={{ fontSize: '18px' }}>Piscina Diària</span>
-            <span className="stat-title">Amb monitors titulats i adaptat a cada edat</span>
+            <span className="stat-title">Sessions refrescants i segures a la piscina municipal amb socorristes</span>
+          </div>
+        </div>
+
+        <div className="stat-card yellow" style={{ cursor: 'default' }}>
+          <div className="stat-icon-box">
+            <Shirt size={26} strokeWidth={2.2} />
+          </div>
+          <div className="stat-info-col">
+            <span className="stat-value" style={{ fontSize: '18px' }}>Roba Oficial Inclosa</span>
+            <span className="stat-title">Pack oficial amb dues samarretes tècniques i motxilla del C.D. Murense</span>
+          </div>
+        </div>
+
+        <div className="stat-card blue" style={{ cursor: 'default' }}>
+          <div className="stat-icon-box">
+            <ShieldCheck size={26} strokeWidth={2.2} />
+          </div>
+          <div className="stat-info-col">
+            <span className="stat-value" style={{ fontSize: '18px' }}>Seguretat & Assegurança</span>
+            <span className="stat-title">Ràtio reduïda per grup, monitors formats i cobertura d'assegurança mèdica</span>
           </div>
         </div>
 
@@ -108,27 +125,17 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
           <div className="stat-info-col">
             <span className="stat-value" style={{ fontSize: '18px' }}>Servei de Menjador</span>
-            <span className="stat-title">Menús saludables i atenció especial d'al·lèrgies</span>
+            <span className="stat-title">Servei opcional amb menús saludables, monitors i atenció a al·lèrgies (13:30h - 15:00h)</span>
           </div>
         </div>
 
-        <div className="stat-card yellow" style={{ cursor: 'default' }}>
+        <div className="stat-card green" style={{ cursor: 'default' }}>
           <div className="stat-icon-box">
-            <Shirt size={26} strokeWidth={2.2} />
+            <Clock size={26} strokeWidth={2.2} />
           </div>
           <div className="stat-info-col">
-            <span className="stat-value" style={{ fontSize: '18px' }}>Roba Oficial</span>
-            <span className="stat-title">Samarreta i motxilla tècnica del C.D. Murense</span>
-          </div>
-        </div>
-
-        <div className="stat-card blue" style={{ cursor: 'default' }}>
-          <div className="stat-icon-box">
-            <ShieldCheck size={26} strokeWidth={2.2} />
-          </div>
-          <div className="stat-info-col">
-            <span className="stat-value" style={{ fontSize: '18px' }}>Seguretat i Monitors</span>
-            <span className="stat-title">Ràtio reduïda i assegurança mèdica inclosa</span>
+            <span className="stat-value" style={{ fontSize: '18px' }}>Escoleta Matinera</span>
+            <span className="stat-title">Acollida matinal opcional a partir de les 08:00h per a la conciliació de les famílies</span>
           </div>
         </div>
       </section>
