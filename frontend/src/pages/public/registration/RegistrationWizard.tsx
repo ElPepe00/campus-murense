@@ -23,15 +23,21 @@ interface RegistrationWizardProps {
 const INITIAL_NEN: DadesNenForm = {
   nom: '',
   cognoms: '',
+  dni: '',
+  edat: '',
   dataNaixement: '',
   sexe: 'nen',
+  poblacio: 'Muro',
+  clubProcedencia: 'C.D. Murense',
+  alergies: '',
+  malalties: '',
   colegi: 'CEIP Joan Mas (Muro)',
   curs: '4t Primària',
-  tallaRoba: '8-10 anys',
-  alergies: '',
+  tallaRoba: '8-10',
 };
 
 const INITIAL_TUTOR: DadesTutorForm = {
+  nomEmplenaFormulari: '',
   nomComplet: '',
   email: '',
   telefonPrincipal: '',
@@ -41,10 +47,11 @@ const INITIAL_TUTOR: DadesTutorForm = {
 };
 
 const INITIAL_SERVEIS: ServeisForm = {
-  setmanes: [1, 2],
+  setmanes: [1],
   menjador: false,
+  intoleranciesMenjador: '',
   matinera: false,
-  piscina: 'SI',
+  descompte: 'cap',
   excursio1: false,
   excursio2: false,
 };
@@ -53,6 +60,7 @@ const INITIAL_AUTORITZACIONS: AutoritzacionsForm = {
   imatges: true,
   sortides: true,
   sortirSol: false,
+  piscina: 'SI',
 };
 
 const STEPS_CONFIG = [

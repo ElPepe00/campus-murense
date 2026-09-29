@@ -1,7 +1,7 @@
 // frontend/src/pages/public/registration/Step1StudentData.tsx
 import React, { useState } from 'react';
-import { Camera, Calendar, ArrowRight, User } from 'lucide-react';
-import type { DadesNenForm, SexeType } from '../../../types/inscripcio';
+import { Calendar, ArrowRight } from 'lucide-react';
+import type { DadesNenForm, SexeType, TallaCamisetaType } from '../../../types/inscripcio';
 
 interface Step1StudentDataProps {
   initialData: DadesNenForm;
@@ -29,8 +29,17 @@ const CURSOS_OPTIONS = [
   '2n ESO',
 ];
 
+const TALLES_ROBA: { val: TallaCamisetaType; label: string }[] = [
+  { val: '4-6', label: 'Talla 4-6 anys' },
+  { val: '8-10', label: 'Talla 8-10 anys' },
+  { val: '12', label: 'Talla 12 anys' },
+  { val: '14', label: 'Talla 14 anys' },
+  { val: 'S', label: 'Talla S' },
+  { val: 'M', label: 'Talla M' },
+];
+
 /**
- * Pas 1 de la inscripció: Dades bàsiques de l'infant (nom, data naixement, sexe, escola i curs).
+ * Pas 1 de la inscripció: Dades personals de l'infant segons l'especificació oficial.
  */
 export const Step1StudentData: React.FC<Step1StudentDataProps> = ({ initialData, onNext }) => {
   const [formData, setFormData] = useState<DadesNenForm>(initialData);
@@ -40,12 +49,32 @@ export const Step1StudentData: React.FC<Step1StudentDataProps> = ({ initialData,
     setFormData((prev) => ({ ...prev, sexe }));
   };
 
-  const handleFotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setFormData((prev) => ({ ...prev, fotoUrl: url }));
+  const handleDataNaixementChange = (dataStr: string) => {
+    let calculatedAge: number | string = formData.edat;
+    if (dataStr) {
+      try {
+        const parts = dataStr.split('-');
+        if (parts.length === 3) {
+          const birthDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          const today = new Date();
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const m = today.getMonth() - birthDate.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+          if (age >= 3 && age <= 18) {
+            calculatedAge = age;
+          }
+        }
+      } catch {
+        // fallback
+      }
     }
+    setFormData((prev) => ({
+      ...prev,
+      dataNaixement: dataStr,
+      edat: calculatedAge,
+    }));
   };
 
   const validateAndSubmit = (e: React.FormEvent) => {
@@ -53,13 +82,19 @@ export const Step1StudentData: React.FC<Step1StudentDataProps> = ({ initialData,
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.nom.trim()) {
-      newErrors.nom = 'El nom és obligatori';
+      newErrors.nom = "El nom de l'infant és obligatori";
     }
     if (!formData.cognoms.trim()) {
       newErrors.cognoms = 'Els cognoms són obligatoris';
     }
+    if (!formData.dni.trim()) {
+      newErrors.dni = 'El DNI del jugador/a és obligatori';
+    }
     if (!formData.dataNaixement) {
       newErrors.dataNaixement = 'La data de naixement és obligatòria';
+    }
+    if (!formData.edat || Number(formData.edat) < 3) {
+      newErrors.edat = "Indica l'edat de l'infant";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -74,35 +109,10 @@ export const Step1StudentData: React.FC<Step1StudentDataProps> = ({ initialData,
   return (
     <form onSubmit={validateAndSubmit} className="step-card">
       <div className="step-card-header">
-        <h2 className="step-card-title">Dades Personals de l'Infant</h2>
+        <h2 className="step-card-title">1 - Inscripcions al Campus: Dades Personals</h2>
         <p className="step-card-subtitle">
-          Introdueix la informació bàsica del participant al Campus C.D. Murense 2027.
+          Introdueix les dades personals de l'infant per formalitzar el seu registre al Campus C.D. Murense.
         </p>
-      </div>
-
-      {/* Pujada de Fotografia */}
-      <div className="photo-upload-section">
-        <div className="photo-preview-circle">
-          {formData.fotoUrl ? (
-            <img src={formData.fotoUrl} alt="Foto de l'infant" className="photo-img-uploaded" />
-          ) : (
-            <User size={40} className="photo-placeholder-icon" />
-          )}
-          <label className="photo-badge-btn" htmlFor="foto-upload-input" title="Pujar foto">
-            <Camera size={16} />
-            <input
-              id="foto-upload-input"
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleFotoUpload}
-            />
-          </label>
-        </div>
-        <div className="photo-hint-col">
-          <span className="photo-hint-title">Fotografia de l'infant (opcional)</span>
-          <span className="photo-hint-text">Ajudarà als monitors a reconèixer-lo més ràpidament el primer dia.</span>
-        </div>
       </div>
 
       <div className="step-fields-grid">
@@ -136,6 +146,21 @@ export const Step1StudentData: React.FC<Step1StudentDataProps> = ({ initialData,
           {errors.cognoms && <span className="error-text">{errors.cognoms}</span>}
         </div>
 
+        {/* DNI del jugador/a */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="nen-dni">DNI / NIE del jugador/a *</label>
+          <input
+            id="nen-dni"
+            type="text"
+            className={`form-input ${errors.dni ? 'input-error' : ''}`}
+            placeholder="Ex: 43219876A"
+            value={formData.dni}
+            onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
+            required
+          />
+          {errors.dni && <span className="error-text">{errors.dni}</span>}
+        </div>
+
         {/* Data de Naixement */}
         <div className="form-group">
           <label className="form-label" htmlFor="nen-data">Data de naixement *</label>
@@ -145,12 +170,29 @@ export const Step1StudentData: React.FC<Step1StudentDataProps> = ({ initialData,
               type="date"
               className={`form-input ${errors.dataNaixement ? 'input-error' : ''}`}
               value={formData.dataNaixement}
-              onChange={(e) => setFormData({ ...formData, dataNaixement: e.target.value })}
+              onChange={(e) => handleDataNaixementChange(e.target.value)}
               required
             />
             <Calendar size={18} className="input-right-icon" />
           </div>
           {errors.dataNaixement && <span className="error-text">{errors.dataNaixement}</span>}
+        </div>
+
+        {/* Edat del jugador/a */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="nen-edat">Edat del jugador/a (anys) *</label>
+          <input
+            id="nen-edat"
+            type="number"
+            min="3"
+            max="18"
+            className={`form-input ${errors.edat ? 'input-error' : ''}`}
+            placeholder="Ex: 10"
+            value={formData.edat}
+            onChange={(e) => setFormData({ ...formData, edat: e.target.value ? parseInt(e.target.value) : '' })}
+            required
+          />
+          {errors.edat && <span className="error-text">{errors.edat}</span>}
         </div>
 
         {/* Sexe */}
@@ -172,6 +214,34 @@ export const Step1StudentData: React.FC<Step1StudentDataProps> = ({ initialData,
               Nena
             </button>
           </div>
+        </div>
+
+        {/* Població */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="nen-poblacio">Població *</label>
+          <input
+            id="nen-poblacio"
+            type="text"
+            className="form-input"
+            placeholder="Ex: Muro"
+            value={formData.poblacio}
+            onChange={(e) => setFormData({ ...formData, poblacio: e.target.value })}
+            required
+          />
+        </div>
+
+        {/* Club de Procedència */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="nen-club">Club de Procedència *</label>
+          <input
+            id="nen-club"
+            type="text"
+            className="form-input"
+            placeholder="Ex: C.D. MURENSE"
+            value={formData.clubProcedencia}
+            onChange={(e) => setFormData({ ...formData, clubProcedencia: e.target.value })}
+            required
+          />
         </div>
 
         {/* Escola */}
@@ -208,34 +278,48 @@ export const Step1StudentData: React.FC<Step1StudentDataProps> = ({ initialData,
           </select>
         </div>
 
-        {/* Talla de Roba Oficial */}
-        <div className="form-group">
-          <label className="form-label" htmlFor="nen-talla">Talla de samarreta oficial (inclosa)</label>
+        {/* 3 - ROBA: Talla de Camiseta Oficial */}
+        <div className="form-group full-width">
+          <label className="form-label" htmlFor="nen-talla">
+            3 - Roba: Talla de Camiseta oficial (elegir una opció) *
+          </label>
           <select
             id="nen-talla"
             className="form-select"
-            value={formData.tallaRoba || '8-10 anys'}
-            onChange={(e) => setFormData({ ...formData, tallaRoba: e.target.value })}
+            value={formData.tallaRoba}
+            onChange={(e) => setFormData({ ...formData, tallaRoba: e.target.value as TallaCamisetaType })}
           >
-            <option value="4-6 anys">4 - 6 anys</option>
-            <option value="8-10 anys">8 - 10 anys</option>
-            <option value="12-14 anys">12 - 14 anys</option>
-            <option value="16 anys / S">16 anys / Talla S</option>
-            <option value="M">Talla M Adult</option>
-            <option value="L">Talla L Adult</option>
+            {TALLES_ROBA.map((t) => (
+              <option key={t.val} value={t.val}>
+                {t.val} ({t.label})
+              </option>
+            ))}
           </select>
         </div>
 
-        {/* Al·lèrgies o Observacions Mèdiques */}
+        {/* Al·lèrgies */}
         <div className="form-group full-width">
-          <label className="form-label" htmlFor="nen-alergies">Al·lèrgies, intoleràncies o medicació (opcional)</label>
+          <label className="form-label" htmlFor="nen-alergies">Al·lèrgies (opcional)</label>
           <input
             id="nen-alergies"
             type="text"
             className="form-input"
-            placeholder="Ex: Al·lèrgia a la penicil·lina, intolerància a la lactosa, o cap observació"
+            placeholder="Ex: Fruits secs, pol·len, penicil·lina... o 'Cap'"
             value={formData.alergies || ''}
             onChange={(e) => setFormData({ ...formData, alergies: e.target.value })}
+          />
+        </div>
+
+        {/* Malalties a tenir en compte */}
+        <div className="form-group full-width">
+          <label className="form-label" htmlFor="nen-malalties">Malalties a tenir en compte (opcional)</label>
+          <input
+            id="nen-malalties"
+            type="text"
+            className="form-input"
+            placeholder="Ex: Asma estacional, diabetis, medicació puntual... o 'Cap'"
+            value={formData.malalties || ''}
+            onChange={(e) => setFormData({ ...formData, malalties: e.target.value })}
           />
         </div>
       </div>
@@ -248,7 +332,7 @@ export const Step1StudentData: React.FC<Step1StudentDataProps> = ({ initialData,
           className="btn-step-next"
           id="btn-step1-continuar"
         >
-          <span>Continuar a Dades de Contacte</span>
+          <span>Continuar a Dades del Tutor</span>
           <ArrowRight size={18} strokeWidth={2.4} />
         </button>
       </div>

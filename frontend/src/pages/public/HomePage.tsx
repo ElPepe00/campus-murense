@@ -11,7 +11,8 @@ import {
   ChevronRight,
   Award,
   Activity,
-  Clock
+  Clock,
+  FileText
 } from 'lucide-react';
 import type { PageTabKey } from '../../components/Navbar';
 
@@ -186,7 +187,71 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 4. Valors del Club */}
+      {/* 4. Informació Important per a les Famílies (Secció 7 de la Guia Oficial) */}
+      <div className="dashboard-section-header">
+        <div>
+          <h2 className="section-title">Informació Important per a les Famílies</h2>
+          <p className="section-subtitle">Tots els detalls pràctics sobre equipament, documentació i pagament</p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+        {/* Motxilla */}
+        <div style={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px', boxShadow: 'var(--shadow-card)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+              <Shirt size={20} />
+            </div>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+              Què han de portar a la motxilla
+            </h3>
+          </div>
+          <ul style={{ paddingLeft: '18px', margin: 0, fontSize: '13.5px', color: '#475569', lineHeight: 1.65 }}>
+            <li><strong>Botella d’aigua:</strong> es podrà omplir còmodament a les instal·lacions.</li>
+            <li><strong>Crema solar:</strong> es recomana posar-ne primer a casa abans de venir.</li>
+            <li><strong>Roba esportiva:</strong> gorra, camiseta i calçons del campus. També calcetins o calces.</li>
+            <li><strong>Berenar:</strong> l’organització aportarà fruita fresca de temporada.</li>
+            <li><strong>Tovallola + roba de recanvi:</strong> es podran dutxar en finalitzar la jornada (no obligatori).</li>
+            <li><strong>Estris per la piscina:</strong> banyador, tovallola, xancles i maneguets si els necessiten per seguretat.</li>
+          </ul>
+        </div>
+
+        {/* Documentació i Pagament */}
+        <div style={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px', boxShadow: 'var(--shadow-card)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+              <FileText size={20} />
+            </div>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+              Documentació i Pagament
+            </h3>
+          </div>
+          <div style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.6 }}>
+            <p style={{ margin: '0 0 6px' }}>
+              <strong>Documentació a presentar:</strong>
+            </p>
+            <ul style={{ paddingLeft: '18px', margin: '0 0 12px' }}>
+              <li>Còpia DNI (jugador/a o tutor)</li>
+              <li>Còpia Targeta Sanitària</li>
+              <li>Justificant de pagament</li>
+            </ul>
+
+            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-light)', marginBottom: '10px' }}>
+              <strong style={{ color: '#0f172a' }}>Transferència Bancària:</strong><br />
+              <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0066f5', fontSize: '13px' }}>
+                IBAN ES93 2056 0016 0520 8320 6827
+              </span>
+            </div>
+
+            <p style={{ margin: 0, fontSize: '12.5px', color: '#b45309' }}>
+              *Data límit per formalitzar la inscripció: <strong>10/06/2027</strong>.<br />
+              Enviar justificant a <strong>campuscdmurense@gmail.com</strong>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Valors del Club */}
       <div style={{
         background: '#ffffff',
         border: '1px solid #e2e8f0',

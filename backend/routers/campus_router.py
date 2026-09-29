@@ -360,11 +360,11 @@ def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
             dni=dni_infant,
             data_naixement=data_naix,
             edat=edat,
-            poblacio="Muro",
-            club_procedencia="C.D. MURENSE",
+            poblacio=nen_data.get("poblacio") or "Muro",
+            club_procedencia=nen_data.get("clubProcedencia") or "C.D. MURENSE",
             alergies=nen_data.get("alergies") or "Cap al·lèrgia declarada",
-            malalties=None,
-            talla_roba=nen_data.get("tallaRoba", "10-12")
+            malalties=nen_data.get("malalties"),
+            talla_roba=nen_data.get("tallaRoba", "8-10")
         )
         db.add(jugador)
         db.commit()
@@ -381,16 +381,32 @@ def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
                 )
                 db.add(persona)
 
-        # 6. Càlcul de preu
+        # 6. Càlcul de preu oficial (segons ESTRUCTURA APP CAMPUS.pdf):
+        # 1 Setmana: 110€ | 2 Setmanes: 200€ | 3 Setmanes: 280€ | 4 Setmanes: 360€
         setmanes = serveis_data.get("setmanes", [1])
         num_setmanes = len(setmanes) if isinstance(setmanes, list) and len(setmanes) > 0 else 1
-        base_preu = num_setmanes * 65.0
+        
+        preus_per_setmana = {1: 110.0, 2: 200.0, 3: 280.0, 4: 360.0}
+        base_preu = preus_per_setmana.get(num_setmanes, num_setmanes * 90.0)
+
+        descompte_raw = str(serveis_data.get("descompte", "cap")).lower()
+        if "murense" in descompte_raw:
+            descompte_enum = models.TipusDescompteEnum.MURENSE
+            pct = 0.10
+        elif "nombrosa" in descompte_raw or "familia" in descompte_raw:
+            descompte_enum = models.TipusDescompteEnum.FAMILIA_NOMBROSA
+            pct = 0.10
+        else:
+            descompte_enum = models.TipusDescompteEnum.CAP
+            pct = 0.0
+
+        base_amb_descompte = base_preu * (1.0 - pct)
         menjador_preu = (num_setmanes * 35.0) if serveis_data.get("menjador") else 0.0
         matinera_preu = (num_setmanes * 15.0) if serveis_data.get("matinera") else 0.0
-        preu_total = base_preu + menjador_preu + matinera_preu
+        preu_total = round(base_amb_descompte + menjador_preu + matinera_preu, 2)
 
         # Servei piscina enum
-        piscina_val = serveis_data.get("piscina", "SI")
+        piscina_val = autoritzacions_data.get("piscina") or serveis_data.get("piscina", "SI")
         if piscina_val == "SI_MANIGUETS":
             piscina_enum = models.ServeiPiscinaEnum.SI_MANIGUETS
         elif piscina_val == "NO":
@@ -408,12 +424,12 @@ def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
             autoritzacio_sortides=bool(autoritzacions_data.get("sortides", True)),
             servei_piscina=piscina_enum,
             servei_menjador=bool(serveis_data.get("menjador", False)),
-            intolerancies_menjador=nen_data.get("alergies") if "lactosa" in (nen_data.get("alergies") or "").lower() else None,
+            intolerancies_menjador=serveis_data.get("intoleranciesMenjador") or nen_data.get("alergies"),
             servei_matinera=bool(serveis_data.get("matinera", False)),
             excursio_30_06=bool(serveis_data.get("excursio1", False)),
             excursio_07_07=bool(serveis_data.get("excursio2", False)),
             setmanes_contractades=num_setmanes,
-            descompte_aplicat=models.TipusDescompteEnum.MURENSE,
+            descompte_aplicat=descompte_enum,
             preu_total=preu_total,
             estat_pagament=models.EstatPagamentEnum.PENDENT
         )

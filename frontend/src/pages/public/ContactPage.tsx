@@ -177,7 +177,7 @@ export const ContactPage: React.FC = () => {
             </div>
             <div>
               <strong>Correu electrònic oficial</strong>
-              <p>campus@cdmurense.com</p>
+              <p>campuscdmurense@gmail.com</p>
             </div>
           </div>
 

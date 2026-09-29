@@ -2,22 +2,31 @@
 
 export type SexeType = 'nen' | 'nena';
 
+export type TallaCamisetaType = '4-6' | '8-10' | '12' | '14' | 'S' | 'M';
+
+export type PiscinaOptionType = 'SI' | 'NO' | 'SI_MANIGUETS';
+
+export type DescompteType = 'cap' | 'murense' | 'nombrosa';
+
 export interface DadesNenForm {
   nom: string;
   cognoms: string;
+  dni: string;
+  edat: number | string;
   dataNaixement: string;
   sexe: SexeType;
-  colegi: string;
-  curs: string;
-  dni?: string;
+  poblacio: string;
+  clubProcedencia: string;
   alergies?: string;
   malalties?: string;
-  tallaRoba?: string;
-  clubProcedencia?: string;
+  colegi: string;
+  curs: string;
+  tallaRoba: TallaCamisetaType;
   fotoUrl?: string;
 }
 
 export interface DadesTutorForm {
+  nomEmplenaFormulari: string;
   nomComplet: string;
   email: string;
   telefonPrincipal: string;
@@ -29,23 +38,24 @@ export interface DadesTutorForm {
 export interface PersonaAutoritzadaForm {
   nomComplet: string;
   dni: string;
-  parentiu: string;
+  parentiu?: string;
 }
 
 export interface ServeisForm {
-  setmanes: number[]; // e.g. [1, 2, 3]
-  menjador: boolean;
+  setmanes: number[]; // [1], [1, 2], [1, 2, 3], [1, 2, 3, 4]
+  menjador: boolean;  // 14:00h - 15:00h
   intoleranciesMenjador?: string;
   matinera: boolean;
-  piscina: 'SI' | 'NO' | 'SI_MANIGUETS';
-  excursio1: boolean;
-  excursio2: boolean;
+  descompte: DescompteType;
+  excursio1: boolean; // Excursió 30/06/2027
+  excursio2: boolean; // Excursió 07/07/2027
 }
 
 export interface AutoritzacionsForm {
   imatges: boolean;
-  sortides: boolean;
   sortirSol: boolean;
+  sortides: boolean;
+  piscina: PiscinaOptionType;
 }
 
 export interface InscripcioState {
