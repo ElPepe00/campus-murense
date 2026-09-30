@@ -1,13 +1,53 @@
 # backend/routers/campus_router.py
-from fastapi import APIRouter, Depends, HTTPException, Query
+import logging
+import time
+from collections import defaultdict
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
-from datetime import date, datetime, time
+from datetime import date, datetime, time as dt_time
 from typing import Optional, List
 from database import get_db
 import models
-from auth import get_current_user
+from auth import get_current_user, require_admin
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/campus", tags=["Gestió del Campus"])
+
+# Protecció anti-spam i DoS per a accions públiques (inscripció i contacte)
+_public_actions: dict[str, list[float]] = defaultdict(list)
+MAX_PUBLIC_ACTIONS_PER_IP = 20
+PUBLIC_ACTION_WINDOW = 600  # 10 minuts
+MAX_TRACKED_IPS = 1000
+
+
+def _check_public_rate_limit(request: Request):
+    """Comprova que una mateixa IP no saturi els formularis públics."""
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+
+    # Neteja de memòria preventiva si el diccionari creix
+    if len(_public_actions) > 100:
+        expired = [
+            ip for ip, timestamps in _public_actions.items()
+            if not any(now - t < PUBLIC_ACTION_WINDOW for t in timestamps)
+        ]
+        for ip in expired:
+            _public_actions.pop(ip, None)
+        if len(_public_actions) > MAX_TRACKED_IPS:
+            for ip in list(_public_actions.keys())[:len(_public_actions) - MAX_TRACKED_IPS]:
+                _public_actions.pop(ip, None)
+
+    _public_actions[client_ip] = [t for t in _public_actions[client_ip] if now - t < PUBLIC_ACTION_WINDOW]
+
+    if len(_public_actions[client_ip]) >= MAX_PUBLIC_ACTIONS_PER_IP:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Has superat el límit de sol·licituds permeses. Per seguretat, torna a intentar-ho d'aquí a uns minuts."
+        )
+
+    _public_actions[client_ip].append(now)
+
 
 # --- 1. Mètriques globals del Dashboard ---
 @router.get("/stats")
@@ -57,7 +97,11 @@ def get_inscrits(
         query = query.filter(models.Inscripcio.grup_assignat == grup)
 
     if search:
-        cerca = f"%{search.strip()}%"
+        # Sanitize i limitar longitud per evitar atacs de wildcard DoS / ReDoS (CWE-400)
+        clean_search = search.strip()[:100]
+        # Escapar caràcters especials SQL LIKE (% i _)
+        safe_search = clean_search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        cerca = f"%{safe_search}%"
         query = query.filter(models.Jugador.nom_complet.ilike(cerca))
 
     resultats = query.all()
@@ -273,7 +317,7 @@ def get_pagos(db: Session = Depends(get_db), current_user: models.Usuari = Depen
 def canviar_estat_pagament(
     inscripcio_id: int,
     db: Session = Depends(get_db),
-    current_user: models.Usuari = Depends(get_current_user)
+    current_user: models.Usuari = Depends(require_admin)
 ):
     inscripcio = db.query(models.Inscripcio).filter(models.Inscripcio.id == inscripcio_id).first()
     if not inscripcio:
@@ -290,13 +334,20 @@ def canviar_estat_pagament(
 
 # --- 6. Recepció d'Inscripcions Públiques (Formulari Wizard de Famílies) ---
 @router.post("/inscripcions")
-def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
+def crear_inscripcio_publica(dades: dict, request: Request, db: Session = Depends(get_db)):
+    # Protecció anti-saturació per IP
+    _check_public_rate_limit(request)
+
+    if not isinstance(dades, dict):
+        raise HTTPException(status_code=400, detail="Format de dades no vàlid")
+
     try:
-        nen_data = dades.get("nen", {})
-        tutor_data = dades.get("tutor", {})
-        serveis_data = dades.get("serveis", {})
-        autoritzacions_data = dades.get("autoritzacions", {})
-        autoritzats_list = dades.get("autoritzats", [])
+        nen_data = dades.get("nen", {}) if isinstance(dades.get("nen"), dict) else {}
+        tutor_data = dades.get("tutor", {}) if isinstance(dades.get("tutor"), dict) else {}
+        serveis_data = dades.get("serveis", {}) if isinstance(dades.get("serveis"), dict) else {}
+        autoritzacions_data = dades.get("autoritzacions", {}) if isinstance(dades.get("autoritzacions"), dict) else {}
+        raw_autoritzats = dades.get("autoritzats", [])
+        autoritzats_list = raw_autoritzats[:10] if isinstance(raw_autoritzats, list) else []
 
         # 1. Obtenir o crear edició activa
         edicio = db.query(models.EdicioActivitat).filter_by(activa=True).first()
@@ -313,17 +364,22 @@ def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
             db.refresh(edicio)
 
         # 2. Gestionar Tutor (cercar si ja existeix pel correu o crear nou)
-        email_tutor = tutor_data.get("email", "").strip().lower()
+        email_tutor = str(tutor_data.get("email", "")).strip().lower()[:150]
         tutor = None
         if email_tutor:
             tutor = db.query(models.Tutor).filter(models.Tutor.email == email_tutor).first()
 
         if not tutor:
+            nom_tutor_clean = str(tutor_data.get("nomComplet", "Tutor sense nom")).strip()[:120]
+            tel_clean = str(tutor_data.get("telefonPrincipal", "600000000")).strip()[:20]
+            tel_sec_raw = tutor_data.get("telefonSecundari")
+            tel_sec = str(tel_sec_raw).strip()[:20] if tel_sec_raw else None
+
             tutor = models.Tutor(
-                nom_complet=tutor_data.get("nomComplet", "Tutor sense nom"),
+                nom_complet=nom_tutor_clean or "Tutor sense nom",
                 email=email_tutor or f"tutor_{datetime.now().timestamp()}@campusmurense.cat",
-                telefon_principal=tutor_data.get("telefonPrincipal", "600000000"),
-                telefon_secundari=tutor_data.get("telefonSecundari"),
+                telefon_principal=tel_clean or "600000000",
+                telefon_secundari=tel_sec,
                 es_tutor_legal=True
             )
             db.add(tutor)
@@ -336,9 +392,11 @@ def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
         edat = 9
         if data_naix_str:
             try:
-                data_naix = datetime.strptime(data_naix_str, "%Y-%m-%d").date()
+                data_naix = datetime.strptime(str(data_naix_str)[:10], "%Y-%m-%d").date()
                 avui = date.today()
                 edat = avui.year - data_naix.year - ((avui.month, avui.day) < (data_naix.month, data_naix.day))
+                # Limitar rang raonable d'edat per seguretat
+                edat = max(3, min(edat, 18))
             except Exception:
                 pass
 
@@ -350,8 +408,14 @@ def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
         else:
             grup_assignat = "Grup C"
 
-        nom_nen = f"{nen_data.get('nom', '')} {nen_data.get('cognoms', '')}".strip() or "Alumne Nou"
-        dni_infant = nen_data.get("dni") or tutor_data.get("dni") or f"REG{int(datetime.now().timestamp())%100000}"
+        nom_nen = f"{str(nen_data.get('nom', ''))[:60]} {str(nen_data.get('cognoms', ''))[:60]}".strip() or "Alumne Nou"
+        dni_infant = str(nen_data.get("dni") or tutor_data.get("dni") or f"REG{int(datetime.now().timestamp())%100000}").strip()[:20]
+
+        alergies_clean = str(nen_data.get("alergies") or "Cap al·lèrgia declarada").strip()[:1000]
+        malalties_clean = str(nen_data.get("malalties")).strip()[:1000] if nen_data.get("malalties") else None
+        talla_clean = str(nen_data.get("tallaRoba", "8-10")).strip()[:10]
+        poblacio_clean = str(nen_data.get("poblacio") or "Muro").strip()[:80]
+        club_clean = str(nen_data.get("clubProcedencia") or "C.D. MURENSE").strip()[:100]
 
         # 4. Crear Jugador
         jugador = models.Jugador(
@@ -360,11 +424,11 @@ def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
             dni=dni_infant,
             data_naixement=data_naix,
             edat=edat,
-            poblacio=nen_data.get("poblacio") or "Muro",
-            club_procedencia=nen_data.get("clubProcedencia") or "C.D. MURENSE",
-            alergies=nen_data.get("alergies") or "Cap al·lèrgia declarada",
-            malalties=nen_data.get("malalties"),
-            talla_roba=nen_data.get("tallaRoba", "8-10")
+            poblacio=poblacio_clean,
+            club_procedencia=club_clean,
+            alergies=alergies_clean,
+            malalties=malalties_clean,
+            talla_roba=talla_clean
         )
         db.add(jugador)
         db.commit()
@@ -372,19 +436,24 @@ def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
 
         # 5. Afegir Persones Autoritzades
         for a in autoritzats_list:
-            if a.get("nomComplet"):
+            if isinstance(a, dict) and a.get("nomComplet"):
                 persona = models.PersonaAutoritzada(
                     jugador_id=jugador.id,
-                    nom_complet=a.get("nomComplet"),
-                    dni=a.get("dni", "N/A"),
-                    parentiu=a.get("parentiu", "Familiar")
+                    nom_complet=str(a.get("nomComplet")).strip()[:120],
+                    dni=str(a.get("dni", "N/A")).strip()[:20],
+                    parentiu=str(a.get("parentiu", "Familiar")).strip()[:50]
                 )
                 db.add(persona)
 
-        # 6. Càlcul de preu oficial (segons ESTRUCTURA APP CAMPUS.pdf):
-        # 1 Setmana: 110€ | 2 Setmanes: 200€ | 3 Setmanes: 280€ | 4 Setmanes: 360€
+        # 6. Càlcul de preu oficial
         setmanes = serveis_data.get("setmanes", [1])
-        num_setmanes = len(setmanes) if isinstance(setmanes, list) and len(setmanes) > 0 else 1
+        if isinstance(setmanes, list):
+            valid_setmanes = [s for s in setmanes if isinstance(s, int) and 1 <= s <= 4]
+            num_setmanes = len(valid_setmanes) if valid_setmanes else 1
+        else:
+            num_setmanes = 1
+
+        num_setmanes = max(1, min(num_setmanes, 4))
         
         preus_per_setmana = {1: 110.0, 2: 200.0, 3: 280.0, 4: 360.0}
         base_preu = preus_per_setmana.get(num_setmanes, num_setmanes * 90.0)
@@ -414,6 +483,8 @@ def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
         else:
             piscina_enum = models.ServeiPiscinaEnum.SI
 
+        intolerancies_clean = str(serveis_data.get("intoleranciesMenjador") or nen_data.get("alergies") or "").strip()[:500]
+
         # 7. Crear Inscripció
         inscripcio = models.Inscripcio(
             jugador_id=jugador.id,
@@ -424,7 +495,7 @@ def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
             autoritzacio_sortides=bool(autoritzacions_data.get("sortides", True)),
             servei_piscina=piscina_enum,
             servei_menjador=bool(serveis_data.get("menjador", False)),
-            intolerancies_menjador=serveis_data.get("intoleranciesMenjador") or nen_data.get("alergies"),
+            intolerancies_menjador=intolerancies_clean or None,
             servei_matinera=bool(serveis_data.get("matinera", False)),
             excursio_30_06=bool(serveis_data.get("excursio1", False)),
             excursio_07_07=bool(serveis_data.get("excursio2", False)),
@@ -437,7 +508,7 @@ def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(inscripcio)
 
-        # 8. Registre d'assistència inicial per a la data d'avui (permet marcatge immediat a demo)
+        # 8. Registre d'assistència inicial per a la data d'avui
         avui = date.today()
         registre_inicial = models.RegistreAssistencia(
             jugador_id=jugador.id,
@@ -461,5 +532,35 @@ def crear_inscripcio_publica(dades: dict, db: Session = Depends(get_db)):
         }
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error registrant la inscripció: {str(e)}")
+        # Per seguretat (CWE-209), mai retornam excepcions internes ni detalls de BD al client
+        log.error(f"Error registrant la inscripció: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="S'ha produït un error en processar la inscripció. Revisa les dades o contacta amb la coordinació."
+        )
+
+
+# --- 7. Recepció de Missatges de Contacte Púbics ---
+@router.post("/contacte")
+def rebre_contacte(dades: dict, request: Request):
+    """Rep consultes i missatges de contacte de les famílies amb validació i rate limit."""
+    _check_public_rate_limit(request)
+
+    if not isinstance(dades, dict):
+        raise HTTPException(status_code=400, detail="Format de dades no vàlid")
+
+    nom = str(dades.get("nom", "")).strip()[:120]
+    email = str(dades.get("email", "")).strip().lower()[:150]
+    telefon = str(dades.get("telefon", "")).strip()[:25]
+    assumpte = str(dades.get("assumpte", "")).strip()[:150]
+    missatge = str(dades.get("missatge", "")).strip()[:2000]
+
+    if not nom or not email or not missatge:
+        raise HTTPException(status_code=400, detail="Nom, correu electrònic i missatge són camps obligatoris")
+
+    log.info(f"Missatge de contacte rebut de '{nom}' <{email}>: {assumpte or 'Sense assumpte'}")
+    return {
+        "status": "ok",
+        "message": "Missatge rebut correctament per l'equip de coordinació"
+    }
 

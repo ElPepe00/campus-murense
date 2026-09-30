@@ -138,3 +138,19 @@ export async function submitInscripcio(formData: unknown): Promise<{ status: str
   });
 }
 
+export interface ContactData {
+  nom: string;
+  email: string;
+  telefon?: string;
+  assumpte?: string;
+  missatge: string;
+}
+
+export async function submitContacte(contactData: ContactData): Promise<{ status: string; message: string }> {
+  return apiClient<{ status: string; message: string }>('/api/campus/contacte', {
+    method: 'POST',
+    body: JSON.stringify(contactData),
+  });
+}
+
+

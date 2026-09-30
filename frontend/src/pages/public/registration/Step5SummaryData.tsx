@@ -13,6 +13,7 @@ import {
 import type { InscripcioState } from '../../../types/inscripcio';
 import { PREUS_CAMPUS_SETMANA } from './Step3ServicesData';
 import { submitInscripcio } from '../../../api/campusApi';
+import { trackEvent } from '../../../utils/analytics';
 
 interface Step5SummaryDataProps {
   formData: InscripcioState;
@@ -43,9 +44,15 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
     setIsSubmitting(true);
     try {
       await submitInscripcio(formData);
+      trackEvent('registration_complete', {
+        setmanes: countWeeks,
+        total: totalPrice,
+        descompte: formData.serveis.descompte
+      });
       onConfirm();
     } catch (err) {
       console.warn('Avís de connexió amb backend, completant registre per a la demo:', err);
+      trackEvent('registration_fallback_demo', { total: totalPrice });
       onConfirm();
     } finally {
       setIsSubmitting(false);

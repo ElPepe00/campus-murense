@@ -58,9 +58,15 @@ try:
     _db_type = "SQLite" if DATABASE_URL.startswith("sqlite") else "PostgreSQL (psycopg2)"
     log.info(f"Connexió a la base de dades establerta: {_db_type}.")
 except Exception as exc:
+    # Per seguretat (CWE-532), mai mostram contrasenyes en els logs
+    try:
+        _safe_url = engine.url.render_as_string(hide_password=True)
+    except Exception:
+        import re
+        _safe_url = re.sub(r"://([^:]+):([^@]+)@", r"://\1:****@", DATABASE_URL)
     log.error(
         f"ERROR: No s'ha pogut connectar a la base de dades.\n"
-        f"  URL activa: {DATABASE_URL[:60]}...\n"
+        f"  URL activa: {_safe_url}\n"
         f"  Detall: {exc}"
     )
 

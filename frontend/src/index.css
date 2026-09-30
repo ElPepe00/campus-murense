@@ -1681,6 +1681,11 @@ body {
   margin-bottom: 20px;
 }
 
+.contacto-info-content {
+  flex: 1;
+  min-width: 0;
+}
+
 .contacto-icon-pill {
   width: 40px;
   height: 40px;
@@ -1702,6 +1707,60 @@ body {
   font-size: 13px;
   color: var(--text-muted);
   margin-top: 2px;
+}
+
+.horaris-oficina-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.horari-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  padding: 3px 0;
+}
+
+.horari-row:not(:last-child) {
+  border-bottom: 1px dashed #e2e8f0;
+  padding-bottom: 7px;
+}
+
+.horari-dia {
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.horari-dia::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--primary, #0066f5);
+}
+
+.horari-hora {
+  font-weight: 700;
+  color: #0f172a;
+  background: #ffffff;
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .contacto-success-box {
@@ -3471,6 +3530,432 @@ body {
   font-size: 12px;
   color: var(--text-muted);
 }
+
+/* --- Fil d'Ariadna (Breadcrumbs) --- */
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  margin-bottom: 20px;
+  color: var(--text-muted);
+}
+
+.breadcrumbs a {
+  color: var(--primary, #0066f5);
+  text-decoration: none;
+  font-weight: 600;
+  transition: opacity var(--transition-fast);
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+.breadcrumb-separator {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.breadcrumb-current {
+  color: #475569;
+  font-weight: 500;
+}
+
+/* --- Peu de pàgina públic (Footer Navigation) --- */
+.site-footer {
+  background: #ffffff;
+  border-top: 1px solid var(--border);
+  padding: 32px 24px;
+  margin-top: 60px;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.footer-links-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.footer-nav-link {
+  color: #475569;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color var(--transition-fast);
+}
+
+.footer-nav-link:hover {
+  color: var(--primary, #0066f5);
+}
+
+.footer-staff-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 6px 12px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  transition: all var(--transition-fast);
+}
+
+.footer-staff-link:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin-animation {
+  animation: spin 1s linear infinite;
+}
+
+/* --- Botó de preferències de cookies al footer --- */
+.footer-cookie-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--transition-fast);
+  font-family: inherit;
+}
+
+.footer-cookie-btn:hover {
+  color: var(--primary, #0066f5);
+  text-decoration: underline;
+}
+
+/* --- Banner de consentiment de Cookies (RGPD / ePrivacy) --- */
+.cookie-consent-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 -8px 25px rgba(15, 23, 42, 0.08);
+  padding: 18px 24px;
+  z-index: 9990;
+  animation: slideUpConsent 0.35s ease-out;
+}
+
+@keyframes slideUpConsent {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.cookie-consent-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.cookie-consent-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 1;
+  min-width: 300px;
+}
+
+.cookie-consent-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fef3c7;
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cookie-consent-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.cookie-consent-desc {
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cookie-link {
+  color: var(--primary, #0066f5);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.cookie-consent-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-cookie-accept {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: var(--primary, #0066f5);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-cookie-accept:hover {
+  background: #0052cc;
+  box-shadow: 0 2px 8px rgba(0, 102, 245, 0.25);
+}
+
+.btn-cookie-secondary {
+  padding: 9px 16px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-cookie-secondary:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.btn-cookie-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  background: transparent;
+  color: #64748b;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-cookie-ghost:hover {
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+.cookie-config-modal-box {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-top: 6px;
+}
+
+.cookie-config-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.cookie-config-item strong {
+  display: block;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.cookie-config-item p {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.badge-essential {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #059669;
+  white-space: nowrap;
+}
+
+/* Switch toggle */
+.cookie-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.cookie-toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.cookie-toggle-switch .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: 0.25s;
+  border-radius: 34px;
+}
+
+.cookie-toggle-switch .slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.25s;
+  border-radius: 50%;
+}
+
+.cookie-toggle-switch input:checked + .slider {
+  background-color: var(--primary, #0066f5);
+}
+
+.cookie-toggle-switch input:checked + .slider:before {
+  transform: translateX(16px);
+}
+
+/* --- Botó Flotant de WhatsApp --- */
+.whatsapp-float-wrapper {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9980;
+}
+
+.whatsapp-float-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  background-color: #25D366;
+  color: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 4px 18px rgba(37, 211, 102, 0.45);
+  text-decoration: none;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+}
+
+.whatsapp-float-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 22px rgba(37, 211, 102, 0.6);
+  color: #ffffff;
+}
+
+.whatsapp-float-tooltip {
+  position: absolute;
+  right: 68px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(8px);
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.whatsapp-float-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -5px;
+  transform: translateY(-50%);
+  border-width: 5px 0 5px 5px;
+  border-style: solid;
+  border-color: transparent transparent transparent #0f172a;
+}
+
+.whatsapp-float-btn:hover .whatsapp-float-tooltip {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+@media (max-width: 768px) {
+  .whatsapp-float-wrapper {
+    bottom: 18px;
+    right: 18px;
+  }
+  .whatsapp-float-btn {
+    width: 52px;
+    height: 52px;
+  }
+  .whatsapp-float-tooltip {
+    display: none;
+  }
+}
+
+
 
 
 

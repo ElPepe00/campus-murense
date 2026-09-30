@@ -1,16 +1,117 @@
 <!doctype html>
-<html lang="es">
+<html lang="ca">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="apple-touch-icon" href="/logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Campus C.D. Murense 2027</title>
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Meta SEO bàsic -->
+    <title>Campus C.D. Murense • Campus d'Estiu 2027 a Muro</title>
+    <meta name="description" content="Campus d'Estiu 2027 del Club Esportiu C.D. Murense a Muro (Mallorca). Futbol formatiu, piscina diària, servei de menjador, escoleta matinera i excursions per a nins i nines de 4 a 14 anys." />
+    <meta name="keywords" content="Campus CD Murense, campus d'estiu Muro, futbol base Muro, campus futbol Mallorca 2027, CD Murense, escoleta futbol, activitats estiu nins Mallorca" />
+    <meta name="author" content="Club Esportiu C.D. Murense" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://campus.cdmurense.com/" />
+
+    <!-- Geo & Localització (Mallorca) -->
+    <meta name="geo.region" content="ES-IB" />
+    <meta name="geo.placename" content="Muro, Illes Balears" />
+    <meta name="geo.position" content="39.7333;3.0560" />
+    <meta name="ICBM" content="39.7333, 3.0560" />
+
+    <!-- Favicons & App Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0066f5" />
     <meta name="application-name" content="Campus C.D. Murense" />
     <meta name="apple-mobile-web-app-title" content="Campus C.D. Murense" />
-    <meta property="og:title" content="Campus C.D. Murense 2027" />
+
+    <!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
+    <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Campus C.D. Murense" />
-    <meta name="description" content="Campus d'Estiu 2027 del C.D. Murense. Futbol, activitats i valors esportius a Muro." />
+    <meta property="og:url" content="https://campus.cdmurense.com/" />
+    <meta property="og:title" content="Campus C.D. Murense • Campus d'Estiu 2027" />
+    <meta property="og:description" content="Obert el període d'inscripcions per a nins i nines de 4 a 14 anys. Futbol formatiu, piscina diària, menjador i equipació oficial inclosa a Muro." />
+    <meta property="og:image" content="https://campus.cdmurense.com/hero-campus.jpg" />
+    <meta property="og:locale" content="ca_ES" />
+    <meta property="og:locale:alternate" content="es_ES" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Campus C.D. Murense • Campus d'Estiu 2027" />
+    <meta name="twitter:description" content="Inscripcions obertes per al Campus d'Estiu del C.D. Murense. Tecnificació, piscina i diversió al Camp Municipal de Muro." />
+    <meta name="twitter:image" content="https://campus.cdmurense.com/hero-campus.jpg" />
+
+    <!-- Dades Estructurades Schema.org (JSON-LD) per a Google & SEO Local -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": ["SportsClub", "SportsActivityLocation", "LocalBusiness"],
+          "@id": "https://campus.cdmurense.com/#organization",
+          "name": "Club Esportiu C.D. Murense",
+          "alternateName": "C.D. Murense",
+          "url": "https://campus.cdmurense.com/",
+          "logo": "https://campus.cdmurense.com/logo.png",
+          "image": "https://campus.cdmurense.com/hero-campus.jpg",
+          "email": "campuscdmurense@gmail.com",
+          "telephone": "+34654321987",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Carrer de Santa Anna, s/n (Camp Municipal d'Esports)",
+            "addressLocality": "Muro",
+            "postalCode": "07440",
+            "addressRegion": "Illes Balears",
+            "addressCountry": "ES"
+          },
+          "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": 39.7333,
+            "longitude": 3.0560
+          },
+          "hasMap": "https://maps.google.com/?q=Camp+Municipal+d'Esports+de+Muro",
+          "priceRange": "110€ - 360€"
+        },
+        {
+          "@type": "Event",
+          "@id": "https://campus.cdmurense.com/#event",
+          "name": "Campus d'Estiu C.D. Murense 2027",
+          "description": "Campus esportiu i educatiu de futbol i multiesport per a nins i nines de 4 a 14 anys amb piscina municipal diària, servei de menjador i escoleta matinera.",
+          "startDate": "2027-06-23T09:00:00+02:00",
+          "endDate": "2027-07-31T14:00:00+02:00",
+          "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+          "eventStatus": "https://schema.org/EventScheduled",
+          "location": {
+            "@type": "Place",
+            "name": "Camp Municipal d'Esports de Muro",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Carrer de Santa Anna, s/n",
+              "addressLocality": "Muro",
+              "postalCode": "07440",
+              "addressRegion": "Illes Balears",
+              "addressCountry": "ES"
+            }
+          },
+          "organizer": {
+            "@id": "https://campus.cdmurense.com/#organization"
+          },
+          "offers": {
+            "@type": "Offer",
+            "url": "https://campus.cdmurense.com/inscripcio",
+            "price": "110.00",
+            "priceCurrency": "EUR",
+            "availability": "https://schema.org/InStock",
+            "validFrom": "2027-04-01T00:00:00+02:00"
+          }
+        }
+      ]
+    }
+    </script>
+
     <!-- Google Fonts: Inter & Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

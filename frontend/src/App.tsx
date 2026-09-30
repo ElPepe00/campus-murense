@@ -17,8 +17,41 @@ import { AttendancePage } from './pages/admin/AttendancePage';
 import { PaymentsPage } from './pages/admin/PaymentsPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
+import { LegalPage } from './pages/public/LegalPage';
+import { PrivacyPage } from './pages/public/PrivacyPage';
+import { CookiesPage } from './pages/public/CookiesPage';
+import { NotFoundPage } from './pages/public/NotFoundPage';
+import { CookieBanner } from './components/CookieBanner';
+import { WhatsAppButton } from './components/WhatsAppButton';
+import { trackPageView } from './utils/analytics';
 import { fetchCampusStats, type CampusStats } from './api/campusApi';
 import { API_BASE_URL } from './api/client';
+
+function getTabFromPath(path: string): PageTabKey {
+  const cleanPath = path.split('?')[0].split('#')[0].replace(/\/+$/, '') || '/';
+  if (cleanPath === '/' || cleanPath === '') {
+    return 'inici';
+  }
+  if (cleanPath === '/inscripcio' || cleanPath.startsWith('/inscripcio/')) {
+    return 'inscripcio';
+  }
+  if (cleanPath === '/noticies' || cleanPath.startsWith('/noticies/')) {
+    return 'noticies';
+  }
+  if (cleanPath === '/contacte' || cleanPath.startsWith('/contacte/')) {
+    return 'contacte';
+  }
+  if (cleanPath === '/avis-legal' || cleanPath === '/aviso-legal') {
+    return 'avis-legal';
+  }
+  if (cleanPath === '/politica-privacitat' || cleanPath === '/privacitat' || cleanPath === '/privacidad') {
+    return 'politica-privacitat';
+  }
+  if (cleanPath === '/politica-cookies' || cleanPath === '/cookies') {
+    return 'politica-cookies';
+  }
+  return 'not-found';
+}
 
 /**
  * Component principal que gestiona l'enrutament intern (/ i /admin),
@@ -26,29 +59,24 @@ import { API_BASE_URL } from './api/client';
  */
 function MainAppContent() {
   const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname);
-  const [activeTab, setActiveTab] = useState<PageTabKey>(() => {
-    const path = window.location.pathname;
-    if (path === '/inscripcio' || path.startsWith('/inscripcio')) {
-      return 'inscripcio';
-    }
-    return 'inici';
-  });
+  const [activeTab, setActiveTab] = useState<PageTabKey>(() => getTabFromPath(window.location.pathname));
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
   const [sidebarOpenMobile, setSidebarOpenMobile] = useState<boolean>(false);
+  const [cookieModalOpen, setCookieModalOpen] = useState<boolean>(false);
   const [apiConnected, setApiConnected] = useState<boolean | null>(null);
   const [stats, setStats] = useState<CampusStats | undefined>(undefined);
   const { isLoggedIn, usuari, logout } = useAuth();
 
   const isAdminRoute = currentPath.startsWith('/admin');
 
-  // Canvi de ruta amb l'API History del navegador (/inscripcio, /admin, /)
+  // Canvi de ruta amb l'API History del navegador (/inscripcio, /noticies, /contacte, /admin, /)
   const navigateTo = (path: string) => {
     window.history.pushState({}, '', path);
     setCurrentPath(path);
     setSelectedChildId(null);
-    if (path === '/inscripcio' || path.startsWith('/inscripcio')) {
-      setActiveTab('inscripcio');
-    } else if (path === '/' || path === '/admin') {
+    if (!path.startsWith('/admin')) {
+      setActiveTab(getTabFromPath(path));
+    } else {
       setActiveTab('inici');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -60,15 +88,20 @@ function MainAppContent() {
       const path = window.location.pathname;
       setCurrentPath(path);
       setSelectedChildId(null);
-      if (path === '/inscripcio' || path.startsWith('/inscripcio')) {
-        setActiveTab('inscripcio');
-      } else if (path === '/') {
+      if (!path.startsWith('/admin')) {
+        setActiveTab(getTabFromPath(path));
+      } else {
         setActiveTab('inici');
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Registre analític de visualització de pàgina respectant el consentiment
+  useEffect(() => {
+    trackPageView(currentPath);
+  }, [currentPath]);
 
   // Comprovació de disponibilitat de l'API de FastAPI
   useEffect(() => {
@@ -97,6 +130,18 @@ function MainAppContent() {
       }
     } else if (currentPath === '/inscripcio' || activeTab === 'inscripcio') {
       document.title = "Campus C.D. Murense • Formulari d'Inscripció 2027";
+    } else if (currentPath === '/noticies' || activeTab === 'noticies') {
+      document.title = "Campus C.D. Murense • Notícies i Novetats";
+    } else if (currentPath === '/contacte' || activeTab === 'contacte') {
+      document.title = "Campus C.D. Murense • Contacte i Atenció";
+    } else if (currentPath === '/avis-legal' || activeTab === 'avis-legal') {
+      document.title = "Campus C.D. Murense • Avís Legal";
+    } else if (currentPath === '/politica-privacitat' || activeTab === 'politica-privacitat') {
+      document.title = "Campus C.D. Murense • Política de Privacitat";
+    } else if (currentPath === '/politica-cookies' || activeTab === 'politica-cookies') {
+      document.title = "Campus C.D. Murense • Política de Cookies";
+    } else if (activeTab === 'not-found') {
+      document.title = "Pàgina No Trobada (404) • Campus C.D. Murense";
     } else {
       document.title = "Campus C.D. Murense • Campus d'Estiu 2027";
     }
@@ -117,9 +162,29 @@ function MainAppContent() {
       navigateTo('/inscripcio');
       return;
     }
-    if (currentPath === '/inscripcio') {
-      window.history.pushState({}, '', '/');
-      setCurrentPath('/');
+    if (tab === 'noticies') {
+      navigateTo('/noticies');
+      return;
+    }
+    if (tab === 'contacte') {
+      navigateTo('/contacte');
+      return;
+    }
+    if (tab === 'avis-legal') {
+      navigateTo('/avis-legal');
+      return;
+    }
+    if (tab === 'politica-privacitat') {
+      navigateTo('/politica-privacitat');
+      return;
+    }
+    if (tab === 'politica-cookies') {
+      navigateTo('/politica-cookies');
+      return;
+    }
+    if (tab === 'inici') {
+      navigateTo('/');
+      return;
     }
     setActiveTab(tab);
   };
@@ -256,8 +321,17 @@ function MainAppContent() {
           />
         )}
 
-        {activeTab === 'noticies' && <NewsPage />}
-        {activeTab === 'contacte' && <ContactPage />}
+        {activeTab === 'noticies' && <NewsPage onNavigate={navigateTo} />}
+        {activeTab === 'contacte' && <ContactPage onNavigate={navigateTo} />}
+        {activeTab === 'avis-legal' && <LegalPage onNavigate={navigateTo} />}
+        {activeTab === 'politica-privacitat' && <PrivacyPage onNavigate={navigateTo} />}
+        {activeTab === 'politica-cookies' && (
+          <CookiesPage 
+            onNavigate={navigateTo} 
+            onOpenCookieSettings={() => setCookieModalOpen(true)} 
+          />
+        )}
+        {activeTab === 'not-found' && <NotFoundPage onNavigate={navigateTo} />}
       </main>
 
       {/* Peu de pàgina públic */}
@@ -265,6 +339,98 @@ function MainAppContent() {
         <div className="footer-container">
           <p>© 2027 Club Esportiu C.D. Murense • Campus d'Estiu. Tots els drets reservats.</p>
           <div className="footer-links-group">
+            <a
+              href="/"
+              className="footer-nav-link"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  navigateTo('/');
+                }
+              }}
+            >
+              Inici
+            </a>
+            <a
+              href="/noticies"
+              className="footer-nav-link"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  navigateTo('/noticies');
+                }
+              }}
+            >
+              Notícies
+            </a>
+            <a
+              href="/contacte"
+              className="footer-nav-link"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  navigateTo('/contacte');
+                }
+              }}
+            >
+              Contacte
+            </a>
+            <a
+              href="/inscripcio"
+              className="footer-nav-link"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  navigateTo('/inscripcio');
+                }
+              }}
+            >
+              Inscripció
+            </a>
+            <a
+              href="/avis-legal"
+              className="footer-nav-link"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  navigateTo('/avis-legal');
+                }
+              }}
+            >
+              Avís Legal
+            </a>
+            <a
+              href="/politica-privacitat"
+              className="footer-nav-link"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  navigateTo('/politica-privacitat');
+                }
+              }}
+            >
+              Privacitat
+            </a>
+            <a
+              href="/politica-cookies"
+              className="footer-nav-link"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  navigateTo('/politica-cookies');
+                }
+              }}
+            >
+              Cookies
+            </a>
+            <button
+              type="button"
+              className="footer-cookie-btn"
+              onClick={() => setCookieModalOpen(true)}
+              title="Configurar el consentiment de galetes"
+            >
+              Preferències Cookies
+            </button>
             <a
               href="/admin"
               className="footer-staff-link"
@@ -282,6 +448,16 @@ function MainAppContent() {
           </div>
         </div>
       </footer>
+
+      {/* Banner de consentiment de Cookies (RGPD / LSSI) */}
+      <CookieBanner
+        onNavigate={navigateTo}
+        isOpenExplicitly={cookieModalOpen}
+        onCloseExplicit={() => setCookieModalOpen(false)}
+      />
+
+      {/* Botó flotant directe de WhatsApp */}
+      <WhatsAppButton />
     </div>
   );
 }

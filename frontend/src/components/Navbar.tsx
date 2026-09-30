@@ -14,6 +14,10 @@ export type PageTabKey =
   | 'inscripcio' 
   | 'noticies' 
   | 'contacte'
+  | 'avis-legal'
+  | 'politica-privacitat'
+  | 'politica-cookies'
+  | 'not-found'
   // Admin only tabs:
   | 'admin-inscripcions' 
   | 'admin-assistencia' 
@@ -86,11 +90,15 @@ export const Navbar: React.FC<NavbarProps> = ({
       <header className="navbar">
         <div className="navbar-container">
           {/* Brand Group */}
-          <div 
+          <a 
+            href="/"
             className="brand-group"
-            onClick={() => handleSelectTab('inici')}
-            role="button"
-            tabIndex={0}
+            onClick={(e) => {
+              if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                e.preventDefault();
+                handleSelectTab('inici');
+              }
+            }}
           >
             <img 
               src="/logo.png" 
@@ -101,36 +109,51 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="brand-title-main">CAMPUS C.D. MURENSE</span>
               <span className="brand-subtitle-tag">Campus d'Estiu 2027</span>
             </div>
-          </div>
+          </a>
 
           {/* Desktop Nav Links (Portal Públic Net - Sense secció repetida d'inscripció) */}
           <nav className="nav-links" aria-label="Navegació principal">
-            <button
-              type="button"
+            <a
+              href="/"
               className={`nav-link-btn ${activeTab === 'inici' ? 'active' : ''}`}
-              onClick={() => handleSelectTab('inici')}
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  handleSelectTab('inici');
+                }
+              }}
             >
               <Home size={17} />
               <span>Inici</span>
-            </button>
+            </a>
 
-            <button
-              type="button"
+            <a
+              href="/noticies"
               className={`nav-link-btn ${activeTab === 'noticies' ? 'active' : ''}`}
-              onClick={() => handleSelectTab('noticies')}
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  handleSelectTab('noticies');
+                }
+              }}
             >
               <Bell size={17} />
               <span>Notícies</span>
-            </button>
+            </a>
 
-            <button
-              type="button"
+            <a
+              href="/contacte"
               className={`nav-link-btn ${activeTab === 'contacte' ? 'active' : ''}`}
-              onClick={() => handleSelectTab('contacte')}
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  handleSelectTab('contacte');
+                }
+              }}
             >
               <MessageSquare size={17} />
               <span>Contacte</span>
-            </button>
+            </a>
           </nav>
 
           {/* Navbar Actions: Únic botó blau d'inscripció al header redirigit a /inscripcio */}
@@ -199,38 +222,53 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         <nav className="mobile-drawer-nav" aria-label="Navegació mòbil">
-          <button
-            type="button"
+          <a
+            href="/"
             className={`mobile-drawer-item ${activeTab === 'inici' ? 'active' : ''}`}
-            onClick={() => handleSelectTab('inici')}
+            onClick={(e) => {
+              if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                e.preventDefault();
+                handleSelectTab('inici');
+              }
+            }}
           >
             <div className="mobile-drawer-icon-wrap">
               <Home size={20} />
             </div>
             <span>Inici</span>
-          </button>
+          </a>
 
-          <button
-            type="button"
+          <a
+            href="/noticies"
             className={`mobile-drawer-item ${activeTab === 'noticies' ? 'active' : ''}`}
-            onClick={() => handleSelectTab('noticies')}
+            onClick={(e) => {
+              if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                e.preventDefault();
+                handleSelectTab('noticies');
+              }
+            }}
           >
             <div className="mobile-drawer-icon-wrap">
               <Bell size={20} />
             </div>
             <span>Notícies</span>
-          </button>
+          </a>
 
-          <button
-            type="button"
+          <a
+            href="/contacte"
             className={`mobile-drawer-item ${activeTab === 'contacte' ? 'active' : ''}`}
-            onClick={() => handleSelectTab('contacte')}
+            onClick={(e) => {
+              if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                e.preventDefault();
+                handleSelectTab('contacte');
+              }
+            }}
           >
             <div className="mobile-drawer-icon-wrap">
               <MessageSquare size={20} />
             </div>
             <span>Contacte</span>
-          </button>
+          </a>
         </nav>
 
         <div className="mobile-drawer-cta-section">

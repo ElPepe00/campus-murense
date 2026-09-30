@@ -58,15 +58,49 @@ export const HomePage: React.FC<HomePageProps> = ({
               <Plus size={19} strokeWidth={2.6} />
               <span>Inscriu el teu fill/a ara</span>
             </a>
+
+            <a 
+              href="/noticies" 
+              className="btn-hero-secondary"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  onNavigateTab('noticies');
+                }
+              }}
+            >
+              <Bell size={18} />
+              <span>Notícies i Avisos</span>
+            </a>
+
+            <a 
+              href="/contacte" 
+              className="btn-hero-secondary"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                  e.preventDefault();
+                  onNavigateTab('contacte');
+                }
+              }}
+            >
+              <MessageSquare size={18} />
+              <span>Contacte</span>
+            </a>
           </div>
         </div>
 
         <div className="hero-image-col">
-          <img 
-            src="/hero-campus.jpg" 
-            alt="Nins i nines al camp de futbol C.D. Murense" 
-            loading="eager"
-          />
+          <picture>
+            <source srcSet="/hero-campus.webp" type="image/webp" />
+            <img 
+              src="/hero-campus.jpg" 
+              alt="Nins i nines al camp de futbol C.D. Murense durant el campus esportiu" 
+              loading="eager"
+              decoding="async"
+              width="688"
+              height="384"
+            />
+          </picture>
           <div className="hero-image-gradient"></div>
         </div>
       </section>
@@ -150,11 +184,16 @@ export const HomePage: React.FC<HomePageProps> = ({
       </div>
 
       <section className="modules-grid" style={{ marginBottom: '32px' }}>
-        <div 
+        <a 
+          href="/noticies"
           className="module-card"
-          onClick={() => onNavigateTab('noticies')}
-          role="button"
-          tabIndex={0}
+          onClick={(e) => {
+            if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+              e.preventDefault();
+              onNavigateTab('noticies');
+            }
+          }}
+          style={{ textDecoration: 'none', color: 'inherit' }}
         >
           <div className="module-card-top">
             <div className="module-icon-box">
@@ -163,16 +202,21 @@ export const HomePage: React.FC<HomePageProps> = ({
             <ChevronRight size={18} className="module-arrow" />
           </div>
           <div>
-            <h3 className="module-name">Tauler de Notícies i Avisos</h3>
+            <h3 className="module-name">Tauler de Notícies i Avisos (/noticies)</h3>
             <p className="module-desc">Dates d'inici, reunions informatives per a famílies i documentació d'interès.</p>
           </div>
-        </div>
+        </a>
 
-        <div 
+        <a 
+          href="/contacte"
           className="module-card"
-          onClick={() => onNavigateTab('contacte')}
-          role="button"
-          tabIndex={0}
+          onClick={(e) => {
+            if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+              e.preventDefault();
+              onNavigateTab('contacte');
+            }
+          }}
+          style={{ textDecoration: 'none', color: 'inherit' }}
         >
           <div className="module-card-top">
             <div className="module-icon-box">
@@ -181,10 +225,10 @@ export const HomePage: React.FC<HomePageProps> = ({
             <ChevronRight size={18} className="module-arrow" />
           </div>
           <div>
-            <h3 className="module-name">Bústia de Contacte</h3>
+            <h3 className="module-name">Bústia de Contacte (/contacte)</h3>
             <p className="module-desc">Envia qualsevol consulta o dubte directament a l'equip de coordinació esportiva.</p>
           </div>
-        </div>
+        </a>
       </section>
 
       {/* 4. Informació Important per a les Famílies (Secció 7 de la Guia Oficial) */}

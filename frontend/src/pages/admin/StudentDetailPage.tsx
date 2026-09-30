@@ -209,7 +209,7 @@ export const StudentDetailPage: React.FC<StudentDetailPageProps> = ({ childId, o
 
               <div className="profile-field-item">
                 <span className="field-title">Telèfon principal</span>
-                <a href={`tel:${fitxa.tutor.telefon}`} className="field-value phone-link">
+                <a href={`tel:${fitxa.tutor.telefon.replace(/[^\d+]/g, '')}`} className="field-value phone-link">
                   <Phone size={15} />
                   <span>{fitxa.tutor.telefon}</span>
                 </a>
@@ -217,7 +217,7 @@ export const StudentDetailPage: React.FC<StudentDetailPageProps> = ({ childId, o
 
               <div className="profile-field-item">
                 <span className="field-title">Correu electrònic</span>
-                <a href={`mailto:${fitxa.tutor.email}`} className="field-value mail-link">
+                <a href={`mailto:${encodeURIComponent(fitxa.tutor.email)}`} className="field-value mail-link">
                   <Mail size={15} />
                   <span>{fitxa.tutor.email}</span>
                 </a>

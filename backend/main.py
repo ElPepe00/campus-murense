@@ -2,10 +2,31 @@
 import os
 import logging
 import sys
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+
+# ---------------------------------------------------------------------------
+# Càrrega automàtica de fitxers .env en entorns locals
+# ---------------------------------------------------------------------------
+for _candidate in [
+    os.path.join(os.path.dirname(__file__), ".env"),
+    os.path.join(os.path.dirname(__file__), "..", ".env"),
+]:
+    if os.path.isfile(_candidate):
+        try:
+            with open(_candidate, "r", encoding="utf-8") as _f:
+                for _line in _f:
+                    _line = _line.strip()
+                    if _line and not _line.startswith("#") and "=" in _line:
+                        _k, _v = _line.split("=", 1)
+                        _k = _k.strip()
+                        _v = _v.strip().strip("'\"")
+                        if _k and _k not in os.environ:
+                            os.environ[_k] = _v
+        except Exception:
+            pass
 
 # ---------------------------------------------------------------------------
 # Validació d'entorn obligatòria en arrencar
@@ -45,7 +66,29 @@ app = FastAPI(
 )
 
 # ---------------------------------------------------------------------------
-# CORS — dinàmic per a dev local + Render + Vercel + Netlify
+# Capçaleres de Seguretat HTTP (Security Headers) & Forçar HTTPS
+# ---------------------------------------------------------------------------
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    # Forçar HTTPS si ve d'un proxy de producció (Render, Cloudflare, Vercel)
+    proto = request.headers.get("x-forwarded-proto")
+    if proto == "http" and os.getenv("ENVIRONMENT", "").lower() == "production":
+        from fastapi.responses import RedirectResponse
+        url = request.url.replace(scheme="https")
+        return RedirectResponse(url=str(url), status_code=301)
+
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+    return response
+
+# ---------------------------------------------------------------------------
+# CORS — protecció estricta contra orígens no autoritzats
 # ---------------------------------------------------------------------------
 _raw_origins = os.getenv("ALLOWED_ORIGINS", "")
 _allowed_origins: list[str] = [
@@ -63,14 +106,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
     allow_origin_regex=(
-        r"https://.*\.vercel\.app"
-        r"|https://.*\.onrender\.com"
-        r"|https://.*\.netlify\.app"
-        r"|http://localhost:\d+"
-        r"|http://127\.0\.0\.1:\d+"
+        r"^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$"
+        r"|^https:\/\/(campus-murense[a-zA-Z0-9-]*\.(vercel\.app|onrender\.com))$"
     ),
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -159,11 +199,17 @@ if os.path.isdir(_static_dir):
             or full_path in ("health", "docs", "redoc", "openapi.json")
         ):
             raise HTTPException(status_code=404, detail="Not Found")
-        target = os.path.join(_static_dir, full_path)
+        
+        static_abs = os.path.abspath(_static_dir)
+        target = os.path.abspath(os.path.join(static_abs, full_path.lstrip("/\\")))
+        # Protecció estricta contra Path Traversal (CWE-22)
+        if not (target == static_abs or target.startswith(static_abs + os.path.sep)):
+            raise HTTPException(status_code=403, detail="Forbidden")
+
         if full_path and os.path.isfile(target):
             return FileResponse(target)
         # SPA fallback → index.html
-        return FileResponse(os.path.join(_static_dir, "index.html"))
+        return FileResponse(os.path.join(static_abs, "index.html"))
 else:
     @app.get("/", include_in_schema=False)
     def read_root():
