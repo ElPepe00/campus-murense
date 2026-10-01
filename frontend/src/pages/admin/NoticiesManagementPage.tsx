@@ -186,10 +186,10 @@ export const NoticiesManagementPage: React.FC = () => {
 
   return (
     <div className="admin-page-container fade-in">
-      <div className="page-header-box">
+      <div className="admin-page-header">
         <div>
-          <h1 className="page-main-title">Gestió de Notícies</h1>
-          <p className="page-main-desc">
+          <h1 className="admin-page-title">Gestió de Notícies</h1>
+          <p className="admin-page-subtitle">
             Crea, modifica o elimina els comunicats oficials del campus. Aquestes notícies es veuran a la web pública.
           </p>
         </div>
@@ -215,8 +215,8 @@ export const NoticiesManagementPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="search-filter-bar">
-        <div className="search-input-wrapper" style={{ flex: 1, maxWidth: '400px' }}>
+      <div className="table-controls-bar">
+        <div className="search-input-wrapper">
           <Search size={18} className="search-icon" />
           <input
             type="text"
@@ -228,9 +228,9 @@ export const NoticiesManagementPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="table-card">
+      <div className="data-table-card">
         <div className="table-responsive">
-          <table className="admin-table">
+          <table className="custom-table">
             <thead>
               <tr>
                 <th>Data</th>
@@ -245,7 +245,7 @@ export const NoticiesManagementPage: React.FC = () => {
                   <tr key={n.id}>
                     <td style={{ whiteSpace: 'nowrap' }}>{n.data}</td>
                     <td>
-                      <span className="status-badge status-pagat">{n.tipus}</span>
+                      <span className="group-badge">{n.tipus}</span>
                     </td>
                     <td style={{ fontWeight: 500, color: 'var(--text-main)', maxWidth: '400px' }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -253,10 +253,10 @@ export const NoticiesManagementPage: React.FC = () => {
                       </div>
                     </td>
                     <td>
-                      <div className="action-buttons-cell" style={{ justifyContent: 'flex-end' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
                         <button
                           type="button"
-                          className="btn-icon btn-edit"
+                          className="btn-group-action"
                           onClick={() => handleOpenModal(n)}
                           title="Modificar"
                         >
@@ -264,7 +264,7 @@ export const NoticiesManagementPage: React.FC = () => {
                         </button>
                         <button
                           type="button"
-                          className="btn-icon btn-delete"
+                          className="btn-group-action delete"
                           onClick={() => handleDeleteNoticia(n.id)}
                           title="Eliminar"
                         >
