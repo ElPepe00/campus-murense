@@ -16,14 +16,15 @@ import {
   updateAssistencia, 
   type AssistenciaResponse 
 } from '../../api/campusApi';
-
-const GRUPS_OPTIONS = ['Tots', 'Grup A', 'Grup B', 'Grup C'];
+import { getStoredCampusConfig } from '../../utils/campusConfig';
 
 /**
  * Pantalla d'assistència diària per a monitors i coordinació esportiva (Pantalla 5).
  * Permet navegar entre dates, veure el recompte de presents/absents i marcar l'assistència a l'instant.
  */
 export const AttendancePage: React.FC = () => {
+  const config = getStoredCampusConfig();
+  const grupsOptions = ['Tots', ...config.grups.map((g) => g.nom)];
   const [dataSeleccionada, setDataSeleccionada] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
@@ -32,10 +33,6 @@ export const AttendancePage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedGrup, setSelectedGrup] = useState('Tots');
   const [savedSuccess, setSavedSuccess] = useState(false);
-
-  useEffect(() => {
-    carregarAssistencia(dataSeleccionada);
-  }, [dataSeleccionada]);
 
   const carregarAssistencia = (d: string) => {
     setLoading(true);
@@ -46,6 +43,10 @@ export const AttendancePage: React.FC = () => {
       })
       .finally(() => setLoading(false));
   };
+
+  useEffect(() => {
+    carregarAssistencia(dataSeleccionada);
+  }, [dataSeleccionada]);
 
   const handlePrevDay = () => {
     const d = new Date(dataSeleccionada);
@@ -114,6 +115,43 @@ export const AttendancePage: React.FC = () => {
   const statsAbsents = groupRegistres.length - statsPresents;
   const statsTotal = groupRegistres.length;
 
+  const handleMarkAll = async (present: boolean) => {
+    if (!assistencia || filteredList.length === 0) return;
+
+    const idsToChange = new Set(filteredList.map((r) => r.jugadorId));
+    const ara = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    setAssistencia((prev) => {
+      if (!prev) return prev;
+      const nous = prev.registres.map((r) => {
+        if (idsToChange.has(r.jugadorId)) {
+          return {
+            ...r,
+            present,
+            horaEntrada: present ? (r.horaEntrada !== '--' ? r.horaEntrada : ara) : '--',
+            horaSortida: present ? r.horaSortida : '--',
+          };
+        }
+        return r;
+      });
+      const countP = nous.filter((r) => r.present).length;
+      return {
+        ...prev,
+        presentes: countP,
+        ausentes: nous.length - countP,
+        registres: nous,
+      };
+    });
+
+    for (const r of filteredList) {
+      if (r.present !== present) {
+        updateAssistencia(r.jugadorId, dataSeleccionada, present).catch(() => {});
+      }
+    }
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 3000);
+  };
+
   return (
     <div className="admin-page-container">
       {/* Capçalera del mòdul */}
@@ -121,6 +159,27 @@ export const AttendancePage: React.FC = () => {
         <div>
           <h1 className="admin-page-title">Control d'Assistència Diària</h1>
           <p className="admin-page-subtitle">Passe de llista ràpid per a monitors i coordinació</p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            type="button"
+            className="btn-topbar-ghost"
+            onClick={() => handleMarkAll(true)}
+            style={{ fontSize: '12.5px', padding: '6px 12px', color: '#059669', borderColor: '#a7f3d0', background: '#ecfdf5' }}
+            title="Marcar tots els alumnes visibles com a presents"
+          >
+            ✓ Tots Presents
+          </button>
+          <button
+            type="button"
+            className="btn-topbar-ghost"
+            onClick={() => handleMarkAll(false)}
+            style={{ fontSize: '12.5px', padding: '6px 12px', color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2' }}
+            title="Desmarcar tots els alumnes visibles"
+          >
+            ✕ Desmarcar Tots
+          </button>
         </div>
       </div>
 
@@ -181,7 +240,7 @@ export const AttendancePage: React.FC = () => {
         </div>
 
         <div className="group-tabs-filter" role="tablist" aria-label="Filtrar per grup">
-          {GRUPS_OPTIONS.map((grup) => (
+          {grupsOptions.map((grup) => (
             <button
               key={grup}
               type="button"

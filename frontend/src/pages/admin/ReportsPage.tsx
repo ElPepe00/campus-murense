@@ -7,7 +7,8 @@ import {
   Download, 
   ChevronRight, 
   FileText,
-  CheckCircle2
+  CheckCircle2,
+  UtensilsCrossed
 } from 'lucide-react';
 import { fetchInscrits, fetchPagos, fetchAssistencia } from '../../api/campusApi';
 
@@ -77,6 +78,23 @@ export const ReportsPage: React.FC = () => {
       setDownloadSuccess('Registre d’assistència descarregat!');
     } catch (err: unknown) {
       console.error('Error descarregant assistència:', err);
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const exportLlistatMedic = async () => {
+    setExporting('medic');
+    try {
+      const data = await fetchInscrits();
+      let csv = 'ID,Nom Infant,Edat,Grup,DNI,Al·lèrgies i Observacions de Salut\n';
+      data.forEach((d) => {
+        csv += `${d.id},"${d.nom}",${d.edat},"${d.grup}","${d.dni}","${d.alergies || 'Cap informada'}"\n`;
+      });
+      downloadCSV('informe_alergies_i_salut_campus_murense.csv', csv);
+      setDownloadSuccess('Informe mèdic i dietes per a cuina/monitors descarregat!');
+    } catch (err: unknown) {
+      console.error('Error descarregant informe mèdic:', err);
     } finally {
       setExporting(null);
     }
@@ -176,6 +194,29 @@ export const ReportsPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '13px', color: '#f59e0b', fontWeight: 600 }}>
               {exporting === 'pagos' ? 'Generant...' : 'Descarregar .CSV'}
+            </span>
+            <ChevronRight size={18} className="menu-item-arrow" />
+          </div>
+        </div>
+
+        <div 
+          className="menu-item"
+          onClick={exportLlistatMedic}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="menu-item-left">
+            <div className="menu-item-icon" style={{ background: '#fdf2f8', color: '#db2777' }}>
+              <UtensilsCrossed size={20} />
+            </div>
+            <div>
+              <strong className="menu-item-text">Llistat Mèdic i Menjador (Al·lèrgies)</strong>
+              <p style={{ fontSize: '12.5px', color: '#64748b' }}>Full operatiu per a cuina, primers auxilis i monitors</p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '13px', color: '#db2777', fontWeight: 600 }}>
+              {exporting === 'medic' ? 'Generant...' : 'Descarregar .CSV'}
             </span>
             <ChevronRight size={18} className="menu-item-arrow" />
           </div>

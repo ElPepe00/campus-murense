@@ -2,12 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { Search, CheckCircle2, Clock, XCircle, ChevronRight, User } from 'lucide-react';
 import { fetchInscrits, type InscritListItem } from '../../api/campusApi';
+import { getStoredCampusConfig } from '../../utils/campusConfig';
 
 interface StudentsPageProps {
   onSelectChild: (id: number) => void;
 }
-
-const GRUPS_OPTIONS = ['Tots', 'Grup A', 'Grup B', 'Grup C'];
 
 /**
  * Pantalla d'administració: Llistat general d'infants inscrits al campus (Pantalla 3).
@@ -16,6 +15,9 @@ const GRUPS_OPTIONS = ['Tots', 'Grup A', 'Grup B', 'Grup C'];
 export const StudentsPage: React.FC<StudentsPageProps> = ({
   onSelectChild,
 }) => {
+  const config = getStoredCampusConfig();
+  const grupsOptions = ['Tots', ...config.grups.map((g) => g.nom)];
+
   const [inscrits, setInscrits] = useState<InscritListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -39,6 +41,12 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({
           <h1 className="admin-page-title">Llistat d'Inscrits</h1>
           <p className="admin-page-subtitle">Gestió d'alumnes i grups del Campus d'Estiu C.D. Murense</p>
         </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ background: '#eff6ff', color: '#0066f5', fontWeight: 700, fontSize: '13px', padding: '6px 14px', borderRadius: '999px', border: '1px solid #bfdbfe' }}>
+            {inscrits.length} {inscrits.length === 1 ? 'alumne trobat' : 'alumnes trobats'}
+          </span>
+        </div>
       </div>
 
       {/* Buscador i Filtres de Grups */}
@@ -55,7 +63,7 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({
         </div>
 
         <div className="group-tabs-filter" role="tablist">
-          {GRUPS_OPTIONS.map((grup) => (
+          {grupsOptions.map((grup) => (
             <button
               key={grup}
               type="button"

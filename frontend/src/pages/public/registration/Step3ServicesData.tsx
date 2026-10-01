@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, Calendar, UtensilsCrossed, Clock, Check, Percent, Compass } from 'lucide-react';
 import type { ServeisForm } from '../../../types/inscripcio';
+import { getStoredCampusConfig, getCampusPriceMap } from '../../../utils/campusConfig';
 
 interface Step3ServicesDataProps {
   initialServeis: ServeisForm;
@@ -9,27 +10,15 @@ interface Step3ServicesDataProps {
   onNext: (serveis: ServeisForm) => void;
 }
 
-const SETMANES_CAMPUS = [
-  { num: 1, nom: 'Setmana 1', dates: '28 Juny - 2 Juliol' },
-  { num: 2, nom: 'Setmana 2', dates: '5 Juliol - 9 Juliol' },
-  { num: 3, nom: 'Setmana 3', dates: '12 Juliol - 16 Juliol' },
-  { num: 4, nom: 'Setmana 4', dates: '19 Juliol - 23 Juliol' },
-];
-
-// Preus oficials segons document "ESTRUCTURA APP CAMPUS.pdf":
-// 1 Setmana: 110€ | 2 Setmanes: 200€ | 3 Setmanes: 280€ | 4 Setmanes: 360€
-export const PREUS_CAMPUS_SETMANA: { [key: number]: number } = {
-  1: 110,
-  2: 200,
-  3: 280,
-  4: 360,
-};
-
 export const Step3ServicesData: React.FC<Step3ServicesDataProps> = ({
   initialServeis,
   onBack,
   onNext,
 }) => {
+  const config = getStoredCampusConfig();
+  const setmanesList = config.calendari.setmanes;
+  const preusCampus = getCampusPriceMap();
+
   const [serveis, setServeis] = useState<ServeisForm>(initialServeis);
   const [errorSetmanes, setErrorSetmanes] = useState<string>('');
 
@@ -48,7 +37,7 @@ export const Step3ServicesData: React.FC<Step3ServicesDataProps> = ({
     setErrorSetmanes('');
     setServeis((prev) => ({
       ...prev,
-      setmanes: [1, 2, 3, 4],
+      setmanes: setmanesList.map((s) => s.num),
     }));
   };
 
@@ -62,18 +51,23 @@ export const Step3ServicesData: React.FC<Step3ServicesDataProps> = ({
     onNext(serveis);
   };
 
-  // Càlcul de cost oficial
+  // Càlcul de cost dinàmic segons configuració del panell admin
   const countWeeks = serveis.setmanes.length;
-  const baseCost = PREUS_CAMPUS_SETMANA[countWeeks] || (countWeeks > 0 ? countWeeks * 90 : 0);
+  const baseCost = preusCampus[countWeeks] || (countWeeks > 0 ? countWeeks * config.tarifes.preu1Setmana : 0);
 
-  // Descompte 10% (no acumulable)
-  const discountRate = serveis.descompte === 'cap' ? 0 : 0.10;
+  // Descomptes configurables des de l'admin
+  const discountRate = serveis.descompte === 'murense' 
+    ? (config.tarifes.descompteSociPercent / 100) 
+    : serveis.descompte === 'nombrosa' 
+    ? (config.tarifes.descompteGermansPercent / 100) 
+    : 0;
+
   const discountAmount = Math.round(baseCost * discountRate);
   const baseAfterDiscount = baseCost - discountAmount;
 
-  // Serveis extra
-  const menjadorCost = serveis.menjador ? countWeeks * 35 : 0;
-  const matineraCost = serveis.matinera ? countWeeks * 15 : 0;
+  // Serveis extra configurables
+  const menjadorCost = serveis.menjador ? countWeeks * config.tarifes.preuMenjadorSetmana : 0;
+  const matineraCost = serveis.matinera ? countWeeks * config.tarifes.preuMatineraSetmana : 0;
   const totalCost = baseAfterDiscount + menjadorCost + matineraCost;
 
   return (
@@ -93,7 +87,7 @@ export const Step3ServicesData: React.FC<Step3ServicesDataProps> = ({
               5 - Cost del Campus (preus per setmana) *
             </label>
             <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              1 setmana: 110€ • 2 setmanes: 200€ • 3 setmanes: 280€ • 4 setmanes: 360€
+              1 setmana: {config.tarifes.preu1Setmana}€ • 2 setmanes: {config.tarifes.preu2Setmanes}€ • 3 setmanes: {config.tarifes.preu3Setmanes}€ • 4 setmanes: {config.tarifes.preu4Setmanes}€
             </span>
           </div>
           <button
@@ -108,12 +102,12 @@ export const Step3ServicesData: React.FC<Step3ServicesDataProps> = ({
               cursor: 'pointer',
             }}
           >
-            Seleccionar mes sencer (4 setmanes)
+            Seleccionar mes sencer ({setmanesList.length} setmanes)
           </button>
         </div>
 
         <div className="service-cards-grid">
-          {SETMANES_CAMPUS.map((setm) => {
+          {setmanesList.map((setm) => {
             const isSelected = serveis.setmanes.includes(setm.num);
             return (
               <div

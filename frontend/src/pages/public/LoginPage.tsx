@@ -11,8 +11,8 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onCancel, isFullPage = false }) => {
   const { login } = useAuth();
-  const [email, setEmail] = useState('admin@cdmurense.com');
-  const [password, setPassword] = useState('ClaveInicialSegura2027!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -54,29 +54,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onCancel, isFul
             <span>{error}</span>
           </div>
         )}
-
-        <div style={{
-          background: 'rgba(0, 102, 245, 0.08)',
-          border: '1px solid rgba(0, 102, 245, 0.25)',
-          borderRadius: '10px',
-          padding: '12px 14px',
-          marginBottom: '18px',
-          fontSize: '13px',
-          color: '#38bdf8',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px'
-        }}>
-          <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>🔑</span> Credencials de prova (Demo Beta):
-          </span>
-          <span style={{ color: '#cbd5e1' }}>
-            Usuari: <code style={{ color: '#60a5fa', background: 'rgba(0,0,0,0.3)', padding: '2px 5px', borderRadius: '4px' }}>admin@cdmurense.com</code>
-          </span>
-          <span style={{ color: '#cbd5e1' }}>
-            Contrasenya: <code style={{ color: '#60a5fa', background: 'rgba(0,0,0,0.3)', padding: '2px 5px', borderRadius: '4px' }}>ClaveInicialSegura2027!</code>
-          </span>
-        </div>
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">

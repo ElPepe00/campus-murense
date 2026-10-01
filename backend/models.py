@@ -196,3 +196,15 @@ class RegistreAssistencia(Base):
     __table_args__ = (
         UniqueConstraint('jugador_id', 'data', name='uix_jugador_dia'),
     )
+
+
+# --- Configuració Dinàmica del Campus (Preus, Torns, Banc, Grups) ---
+
+class ConfiguracioCampus(Base):
+    """Emmagatzema els paràmetres dinàmics que l'administrador pot editar des del panell."""
+    __tablename__ = "configuracio_campus"
+
+    id = Column(Integer, primary_key=True, default=1)
+    clau = Column(String(50), unique=True, default="general", nullable=False)
+    valors_json = Column(Text, nullable=False)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

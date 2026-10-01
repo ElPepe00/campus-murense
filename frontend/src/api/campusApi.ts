@@ -153,4 +153,15 @@ export async function submitContacte(contactData: ContactData): Promise<{ status
   });
 }
 
+export async function fetchCampusConfig(): Promise<{ status: string; data: unknown }> {
+  return apiClient<{ status: string; data: unknown }>('/api/campus/config');
+}
+
+export async function saveCampusConfigToApi(configData: unknown): Promise<{ status: string; message: string }> {
+  return apiClient<{ status: string; message: string }>('/api/campus/config', {
+    method: 'PUT',
+    body: JSON.stringify(configData),
+  });
+}
+
 

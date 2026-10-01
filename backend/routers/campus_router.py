@@ -1,4 +1,5 @@
 # backend/routers/campus_router.py
+import json
 import logging
 import time
 from collections import defaultdict
@@ -563,4 +564,47 @@ def rebre_contacte(dades: dict, request: Request):
         "status": "ok",
         "message": "Missatge rebut correctament per l'equip de coordinació"
     }
+
+
+# --- 8. Configuració Dinàmica del Campus (Preus, Torns, Banc, Grups) ---
+@router.get("/config")
+def get_campus_config(db: Session = Depends(get_db)):
+    """Retorna la configuració vigent del campus (pública per a la web i formulari)."""
+    cfg = db.query(models.ConfiguracioCampus).filter(models.ConfiguracioCampus.clau == "general").first()
+    if not cfg or not cfg.valors_json:
+        return {"status": "default", "data": None}
+    try:
+        data = json.loads(cfg.valors_json)
+        return {"status": "ok", "data": data}
+    except Exception as e:
+        log.error(f"Error descodificant JSON de configuració: {e}")
+        return {"status": "default", "data": None}
+
+
+@router.put("/config")
+def update_campus_config(
+    dades: dict,
+    db: Session = Depends(get_db),
+    admin_user: models.Usuari = Depends(require_admin)
+):
+    """Actualitza la configuració general del campus (requereix rol ADMIN)."""
+    if not isinstance(dades, dict):
+        raise HTTPException(status_code=400, detail="El format de la configuració ha de ser un objecte JSON")
+
+    try:
+        valors_str = json.dumps(dades, ensure_ascii=False)
+        cfg = db.query(models.ConfiguracioCampus).filter(models.ConfiguracioCampus.clau == "general").first()
+        if not cfg:
+            cfg = models.ConfiguracioCampus(clau="general", valors_json=valors_str)
+            db.add(cfg)
+        else:
+            cfg.valors_json = valors_str
+        db.commit()
+        db.refresh(cfg)
+        return {"status": "ok", "message": "Configuració guardada correctament a la base de dades"}
+    except Exception as e:
+        db.rollback()
+        log.error(f"Error desant la configuració: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Error desant la configuració del campus")
+
 

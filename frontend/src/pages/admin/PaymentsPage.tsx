@@ -17,11 +17,8 @@ export const PaymentsPage: React.FC = () => {
   const [pagosData, setPagosData] = useState<PagosResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'TOTS' | 'PAGATS' | 'PENDENTS'>('TOTS');
   const [togglingId, setTogglingId] = useState<number | null>(null);
-
-  useEffect(() => {
-    carregarPagos();
-  }, []);
 
   const carregarPagos = () => {
     setLoading(true);
@@ -32,6 +29,10 @@ export const PaymentsPage: React.FC = () => {
       })
       .finally(() => setLoading(false));
   };
+
+  useEffect(() => {
+    carregarPagos();
+  }, []);
 
   const handleTogglePago = async (id: number) => {
     setTogglingId(id);
@@ -45,9 +46,15 @@ export const PaymentsPage: React.FC = () => {
     }
   };
 
-  const filtered = pagosData?.llista.filter((p) =>
-    p.nom.toLowerCase().includes(search.toLowerCase())
-  ) || [];
+  const filtered = (pagosData?.llista || []).filter((p) => {
+    const matchesSearch = p.nom.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = filterStatus === 'TOTS' 
+      ? true 
+      : filterStatus === 'PAGATS' 
+      ? p.estat === 'PAGAT' 
+      : p.estat !== 'PAGAT';
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="admin-page-container">
@@ -59,10 +66,15 @@ export const PaymentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Targetes de resum (KPIs de pagament) */}
+      {/* Targetes de resum (KPIs de pagament interactius) */}
       {pagosData && (
         <div className="stats-grid" style={{ marginBottom: '24px' }}>
-          <div className="stat-card green" style={{ cursor: 'default' }}>
+          <div 
+            className={`stat-card green ${filterStatus === 'PAGATS' ? 'active-filter-card' : ''}`} 
+            style={{ cursor: 'pointer' }}
+            onClick={() => setFilterStatus(filterStatus === 'PAGATS' ? 'TOTS' : 'PAGATS')}
+            title="Filtrar només pagats"
+          >
             <div className="stat-icon-box">
               <CheckCircle2 size={26} strokeWidth={2.2} />
             </div>
@@ -72,7 +84,12 @@ export const PaymentsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="stat-card orange" style={{ cursor: 'default' }}>
+          <div 
+            className={`stat-card orange ${filterStatus === 'PENDENTS' ? 'active-filter-card' : ''}`} 
+            style={{ cursor: 'pointer' }}
+            onClick={() => setFilterStatus(filterStatus === 'PENDENTS' ? 'TOTS' : 'PENDENTS')}
+            title="Filtrar només pendents"
+          >
             <div className="stat-icon-box">
               <Clock size={26} strokeWidth={2.2} />
             </div>
@@ -82,7 +99,12 @@ export const PaymentsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="stat-card blue" style={{ cursor: 'default' }}>
+          <div 
+            className={`stat-card blue ${filterStatus === 'TOTS' ? 'active-filter-card' : ''}`} 
+            style={{ cursor: 'pointer' }}
+            onClick={() => setFilterStatus('TOTS')}
+            title="Veure tots els alumnes"
+          >
             <div className="stat-icon-box">
               <Users size={26} strokeWidth={2.2} />
             </div>
@@ -94,7 +116,7 @@ export const PaymentsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Cerca per text de l'infant */}
+      {/* Cerca per text de l'infant i filtre d'estat */}
       <div className="table-controls-bar">
         <div className="search-input-wrapper">
           <Search size={18} className="search-icon" />
@@ -105,6 +127,30 @@ export const PaymentsPage: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+        </div>
+
+        <div className="group-tabs-filter" role="tablist">
+          <button
+            type="button"
+            className={`group-filter-pill ${filterStatus === 'TOTS' ? 'active' : ''}`}
+            onClick={() => setFilterStatus('TOTS')}
+          >
+            Tots
+          </button>
+          <button
+            type="button"
+            className={`group-filter-pill ${filterStatus === 'PAGATS' ? 'active' : ''}`}
+            onClick={() => setFilterStatus('PAGATS')}
+          >
+            ✓ Pagats ({pagosData?.pagats || 0})
+          </button>
+          <button
+            type="button"
+            className={`group-filter-pill ${filterStatus === 'PENDENTS' ? 'active' : ''}`}
+            onClick={() => setFilterStatus('PENDENTS')}
+          >
+            ⏳ Pendents ({pagosData?.pendents || 0})
+          </button>
         </div>
       </div>
 

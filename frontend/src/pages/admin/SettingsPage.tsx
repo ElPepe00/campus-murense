@@ -4,103 +4,47 @@ import {
   Building, 
   Users, 
   UserCheck, 
-  Bell, 
-  ShieldCheck, 
-  ChevronRight,
-  Plus,
-  Edit2,
-  Trash2,
-  X,
-  Coins,
-  CheckCircle2,
-  Clock,
-  Waves,
-  MapPin,
-  Sparkles
+  Plus, 
+  Edit2, 
+  Trash2, 
+  X, 
+  Coins, 
+  CheckCircle2, 
+  Clock, 
+  Waves, 
+  MapPin, 
+  Sparkles,
+  CreditCard,
+  Calendar,
+  Save,
+  RotateCcw,
+  Phone
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { 
+  getStoredCampusConfig, 
+  setStoredCampusConfig, 
+  DEFAULT_CAMPUS_CONFIG,
+  type CampusConfigData, 
+  type CampusGroupConfig,
+  type SetmanaConfig
+} from '../../utils/campusConfig';
+import { fetchCampusConfig, saveCampusConfigToApi } from '../../api/campusApi';
 
-export interface CampusGroupConfig {
-  id: string;
-  nom: string;
-  subtitol: string;
-  edats: string;
-  color: string;
-  placesMaximes: number;
-  ratioMonitor: string;
-  preuSetmana: number;
-  preuMenjadorSetmana: number;
-  preuMatineraSetmana: number;
-  descompteGermansPercent: number;
-  zonaEntrenament: string;
-  tornPiscina: string;
-  pilotaRecomanada: string;
-}
+type SettingsTabKey = 'tarifes' | 'grups' | 'banc' | 'calendari' | 'instalacions';
 
-const STORAGE_GROUPS_KEY = 'campus_murense_grups';
-
-const DEFAULT_GROUPS: CampusGroupConfig[] = [
-  {
-    id: 'grup-a',
-    nom: 'Grup A',
-    subtitol: 'Iniciació i Psicomotricitat',
-    edats: '4 a 7 anys (nascuts 2019–2022)',
-    color: '#1d4ed8',
-    placesMaximes: 25,
-    ratioMonitor: '1 monitor / 8 nins',
-    preuSetmana: 40,
-    preuMenjadorSetmana: 25,
-    preuMatineraSetmana: 10,
-    descompteGermansPercent: 10,
-    zonaEntrenament: 'Camp F7 A i Poliesportiu',
-    tornPiscina: '11:30h a 12:30h',
-    pilotaRecomanada: 'Talla 3',
-  },
-  {
-    id: 'grup-b',
-    nom: 'Grup B',
-    subtitol: 'Desenvolupament i Tècnica',
-    edats: '8 a 10 anys (nascuts 2016–2018)',
-    color: '#be185d',
-    placesMaximes: 30,
-    ratioMonitor: '1 monitor / 12 nins',
-    preuSetmana: 40,
-    preuMenjadorSetmana: 25,
-    preuMatineraSetmana: 10,
-    descompteGermansPercent: 10,
-    zonaEntrenament: 'Camp Gespa Principal F7',
-    tornPiscina: '12:30h a 13:30h',
-    pilotaRecomanada: 'Talla 4',
-  },
-  {
-    id: 'grup-c',
-    nom: 'Grup C',
-    subtitol: 'Tecnificació i Rendiment',
-    edats: '11 a 14 anys (nascuts 2013–2015)',
-    color: '#15803d',
-    placesMaximes: 30,
-    ratioMonitor: '1 monitor / 15 nins',
-    preuSetmana: 45,
-    preuMenjadorSetmana: 25,
-    preuMatineraSetmana: 10,
-    descompteGermansPercent: 10,
-    zonaEntrenament: 'Camp F11 Principal',
-    tornPiscina: '13:00h a 14:00h',
-    pilotaRecomanada: 'Talla 5',
-  },
-];
-
-/**
- * Pantalla de configuració general del club, paràmetres dels grups, tarifes i quotes (Pantalla 8).
- */
 export const SettingsPage: React.FC = () => {
   const { usuari } = useAuth();
-  const [grups, setGrups] = useState<CampusGroupConfig[]>([]);
-  const [editingGroup, setEditingGroup] = useState<CampusGroupConfig | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [config, setConfig] = useState<CampusConfigData>(getStoredCampusConfig());
+  const [activeTab, setActiveTab] = useState<SettingsTabKey>('tarifes');
+  const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Camps del formulari
+  // Estat per a edició de grups
+  const [editingGroup, setEditingGroup] = useState<CampusGroupConfig | null>(null);
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+
+  // Form de grup
   const [formNom, setFormNom] = useState('');
   const [formSubtitol, setFormSubtitol] = useState('');
   const [formEdats, setFormEdats] = useState('');
@@ -115,21 +59,22 @@ export const SettingsPage: React.FC = () => {
   const [formPiscina, setFormPiscina] = useState('12:00h a 13:00h');
   const [formPilota, setFormPilota] = useState('Talla 4');
 
-  // Carregar grups des de localStorage
+  // Intentar sincronitzar des de l'API en carregar la pàgina
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_GROUPS_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setGrups(parsed);
-          return;
+    fetchCampusConfig()
+      .then((res) => {
+        if (res.status === 'ok' && res.data && typeof res.data === 'object') {
+          const apiConfig = res.data as CampusConfigData;
+          setConfig((prev) => {
+            const merged = { ...prev, ...apiConfig };
+            setStoredCampusConfig(merged);
+            return merged;
+          });
         }
-      }
-    } catch (e) {
-      console.error('Error carregant configuració de grups:', e);
-    }
-    setGrups(DEFAULT_GROUPS);
+      })
+      .catch((err) => {
+        console.info('Configuració carregada des de memòria local:', err);
+      });
   }, []);
 
   const showToast = (msg: string) => {
@@ -137,9 +82,41 @@ export const SettingsPage: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const handleSaveAllConfig = async () => {
+    setSaving(true);
+    try {
+      // 1. Desar a la memòria local per a resposta instantània i components reactius
+      setStoredCampusConfig(config);
+
+      // 2. Intentar desar a la base de dades del backend
+      try {
+        await saveCampusConfigToApi(config);
+      } catch (apiErr) {
+        console.warn('Avís desant al backend (mode local actiu):', apiErr);
+      }
+
+      showToast('Configuració desada correctament! Els canvis ja són visibles al formulari.');
+    } catch (e) {
+      console.error('Error desant configuració:', e);
+      showToast('S\'ha produït un error en desar la configuració.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetDefaults = () => {
+    if (window.confirm('Vols restablir tots els paràmetres, preus i grups als valors per defecte?')) {
+      setConfig(DEFAULT_CAMPUS_CONFIG);
+      setStoredCampusConfig(DEFAULT_CAMPUS_CONFIG);
+      saveCampusConfigToApi(DEFAULT_CAMPUS_CONFIG).catch(() => {});
+      showToast('Paràmetres restablerts als valors originals.');
+    }
+  };
+
+  // --- Handlers per als Grups ---
   const handleOpenNewGroup = () => {
     setEditingGroup(null);
-    setFormNom(`Grup ${String.fromCharCode(65 + grups.length)}`);
+    setFormNom(`Grup ${String.fromCharCode(65 + config.grups.length)}`);
     setFormSubtitol('Nova categoria');
     setFormEdats('7 a 9 anys');
     setFormColor('#7c3aed');
@@ -152,7 +129,7 @@ export const SettingsPage: React.FC = () => {
     setFormZona('Camp F7 B');
     setFormPiscina('12:00h a 13:00h');
     setFormPilota('Talla 4');
-    setIsModalOpen(true);
+    setIsGroupModalOpen(true);
   };
 
   const handleOpenEditGroup = (grup: CampusGroupConfig) => {
@@ -170,10 +147,10 @@ export const SettingsPage: React.FC = () => {
     setFormZona(grup.zonaEntrenament);
     setFormPiscina(grup.tornPiscina);
     setFormPilota(grup.pilotaRecomanada);
-    setIsModalOpen(true);
+    setIsGroupModalOpen(true);
   };
 
-  const handleSaveGroup = (e: React.FormEvent) => {
+  const handleSaveGroupModal = (e: React.FormEvent) => {
     e.preventDefault();
 
     const updatedGroupData: CampusGroupConfig = {
@@ -193,52 +170,80 @@ export const SettingsPage: React.FC = () => {
       pilotaRecomanada: formPilota.trim() || 'Talla 4',
     };
 
-    let newGrupsList: CampusGroupConfig[];
+    let newGrups: CampusGroupConfig[];
     if (editingGroup) {
-      newGrupsList = grups.map((g) => (g.id === editingGroup.id ? updatedGroupData : g));
-      showToast(`S'ha actualitzat la configuració de ${updatedGroupData.nom}`);
+      newGrups = config.grups.map((g) => (g.id === editingGroup.id ? updatedGroupData : g));
     } else {
-      newGrupsList = [...grups, updatedGroupData];
-      showToast(`S'ha creat el nou grup ${updatedGroupData.nom}`);
+      newGrups = [...config.grups, updatedGroupData];
     }
 
-    setGrups(newGrupsList);
-    try {
-      localStorage.setItem(STORAGE_GROUPS_KEY, JSON.stringify(newGrupsList));
-    } catch (err) {
-      console.error('Error desant grups a localStorage:', err);
-    }
-    setIsModalOpen(false);
+    const updatedConfig = { ...config, grups: newGrups };
+    setConfig(updatedConfig);
+    setStoredCampusConfig(updatedConfig);
+    saveCampusConfigToApi(updatedConfig).catch(() => {});
+    setIsGroupModalOpen(false);
+    showToast(`Grup ${updatedGroupData.nom} guardat correctament.`);
   };
 
   const handleDeleteGroup = (id: string, nom: string) => {
-    if (window.confirm(`Segur que vols eliminar ${nom} i la seva configuració?`)) {
-      const updated = grups.filter((g) => g.id !== id);
-      setGrups(updated);
-      try {
-        localStorage.setItem(STORAGE_GROUPS_KEY, JSON.stringify(updated));
-      } catch (err) {
-        console.error('Error desant grups:', err);
-      }
+    if (window.confirm(`Segur que vols eliminar ${nom} i les seves configuracions?`)) {
+      const newGrups = config.grups.filter((g) => g.id !== id);
+      const updatedConfig = { ...config, grups: newGrups };
+      setConfig(updatedConfig);
+      setStoredCampusConfig(updatedConfig);
+      saveCampusConfigToApi(updatedConfig).catch(() => {});
       showToast(`S'ha eliminat ${nom}`);
     }
   };
 
-  const handleResetDefaults = () => {
-    if (window.confirm('Vols restablir la configuració dels grups i tarifes als valors inicials?')) {
-      setGrups(DEFAULT_GROUPS);
-      localStorage.setItem(STORAGE_GROUPS_KEY, JSON.stringify(DEFAULT_GROUPS));
-      showToast('Configuració de grups restablerta per defecte');
-    }
+  const handleWeekChange = (index: number, field: keyof SetmanaConfig, value: string) => {
+    const updatedWeeks = [...config.calendari.setmanes];
+    updatedWeeks[index] = {
+      ...updatedWeeks[index],
+      [field]: value,
+    };
+    setConfig({
+      ...config,
+      calendari: {
+        ...config.calendari,
+        setmanes: updatedWeeks,
+      },
+    });
   };
 
   return (
-    <div className="admin-page-container" style={{ maxWidth: '960px' }}>
+    <div className="admin-page-container" style={{ maxWidth: '1000px' }}>
       {/* Capçalera */}
-      <div className="admin-page-header">
+      <div className="admin-page-header" style={{ marginBottom: '16px' }}>
         <div>
-          <h1 className="admin-page-title">Configuració del Campus</h1>
-          <p className="admin-page-subtitle">Gestió de grups d'edat, quotes setmanals, ràtios i paràmetres logístics</p>
+          <h1 className="admin-page-title">Configuració i Gestió del Club</h1>
+          <p className="admin-page-subtitle">
+            Control de tarifes, dates, dades bancàries i grups d'edat. Coordinador actiu: <strong>{usuari?.nom_complet || 'Staff C.D. Murense'}</strong> ({usuari?.email || 'admin@cdmurense.com'})
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            type="button"
+            className="btn-topbar-ghost"
+            onClick={handleResetDefaults}
+            title="Restablir valors inicials"
+            style={{ fontSize: '13px' }}
+          >
+            <RotateCcw size={15} />
+            <span>Restablir defecte</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn-hero-primary"
+            onClick={handleSaveAllConfig}
+            disabled={saving}
+            style={{ fontSize: '13.5px' }}
+          >
+            <Save size={16} />
+            <span>{saving ? 'Guardant...' : 'Desar canvis'}</span>
+          </button>
         </div>
       </div>
 
@@ -263,274 +268,653 @@ export const SettingsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Estat de l'usuari actual connectat */}
-      <div style={{
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
-        borderRadius: '16px',
-        padding: '18px 22px',
-        marginBottom: '28px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-        boxShadow: 'var(--shadow-card)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            background: '#eff6ff',
-            color: '#0066f5',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <UserCheck size={22} />
-          </div>
-          <div>
-            <strong style={{ fontSize: '15px', color: '#0f172a' }}>{usuari?.nom_complet || 'Coordinador Campus'}</strong>
-            <p style={{ fontSize: '12.5px', color: '#64748b' }}>{usuari?.email} • Rol: {usuari?.rol || 'Staff'}</p>
-          </div>
-        </div>
+      {/* Barra de Pestanyes de Configuració */}
+      <div className="group-tabs-filter" style={{ marginBottom: '24px', background: '#f8fafc', padding: '6px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        <button
+          type="button"
+          className={`group-filter-pill ${activeTab === 'tarifes' ? 'active' : ''}`}
+          onClick={() => setActiveTab('tarifes')}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          <Coins size={16} />
+          <span>Tarifes i Quotes</span>
+        </button>
 
-        <span style={{
-          fontSize: '12px',
-          fontWeight: 700,
-          background: '#ecfdf5',
-          color: '#065f46',
-          padding: '4px 12px',
-          borderRadius: '999px'
-        }}>
-          Sessió activa
-        </span>
+        <button
+          type="button"
+          className={`group-filter-pill ${activeTab === 'grups' ? 'active' : ''}`}
+          onClick={() => setActiveTab('grups')}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          <Users size={16} />
+          <span>Grups i Places ({config.grups.length})</span>
+        </button>
+
+        <button
+          type="button"
+          className={`group-filter-pill ${activeTab === 'banc' ? 'active' : ''}`}
+          onClick={() => setActiveTab('banc')}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          <CreditCard size={16} />
+          <span>Dades Bancàries i Pagament</span>
+        </button>
+
+        <button
+          type="button"
+          className={`group-filter-pill ${activeTab === 'calendari' ? 'active' : ''}`}
+          onClick={() => setActiveTab('calendari')}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          <Calendar size={16} />
+          <span>Calendari i Torns</span>
+        </button>
+
+        <button
+          type="button"
+          className={`group-filter-pill ${activeTab === 'instalacions' ? 'active' : ''}`}
+          onClick={() => setActiveTab('instalacions')}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          <Building size={16} />
+          <span>Horaris i Contacte</span>
+        </button>
       </div>
 
-      {/* Secció 1: Grups i Categories del Campus */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+      {/* CONTINGUT DE LA PESTANYA 1: TARIFES I PREUS */}
+      {activeTab === 'tarifes' && (
+        <div className="data-table-card" style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Coins size={20} color="var(--primary)" />
+              <span>Quotes Oficials del Campus (Escala de Preus)</span>
+            </h2>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              Aquests preus s'apliquen directament al formulari d'inscripció que completen les famílies.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            <div className="form-group" style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <label className="form-label" style={{ fontWeight: 700, color: '#0f172a' }}>1 Setmana (€)</label>
+              <input
+                type="number"
+                min="0"
+                className="form-input"
+                value={config.tarifes.preu1Setmana}
+                onChange={(e) => setConfig({
+                  ...config,
+                  tarifes: { ...config.tarifes, preu1Setmana: Number(e.target.value) || 0 }
+                })}
+              />
+              <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>Preu estàndard 1a setmana</span>
+            </div>
+
+            <div className="form-group" style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <label className="form-label" style={{ fontWeight: 700, color: '#0f172a' }}>2 Setmanes (€)</label>
+              <input
+                type="number"
+                min="0"
+                className="form-input"
+                value={config.tarifes.preu2Setmanes}
+                onChange={(e) => setConfig({
+                  ...config,
+                  tarifes: { ...config.tarifes, preu2Setmanes: Number(e.target.value) || 0 }
+                })}
+              />
+              <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>Total per a 2 setmanes</span>
+            </div>
+
+            <div className="form-group" style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <label className="form-label" style={{ fontWeight: 700, color: '#0f172a' }}>3 Setmanes (€)</label>
+              <input
+                type="number"
+                min="0"
+                className="form-input"
+                value={config.tarifes.preu3Setmanes}
+                onChange={(e) => setConfig({
+                  ...config,
+                  tarifes: { ...config.tarifes, preu3Setmanes: Number(e.target.value) || 0 }
+                })}
+              />
+              <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>Total per a 3 setmanes</span>
+            </div>
+
+            <div className="form-group" style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <label className="form-label" style={{ fontWeight: 700, color: '#0f172a' }}>4 Setmanes (Complet) (€)</label>
+              <input
+                type="number"
+                min="0"
+                className="form-input"
+                value={config.tarifes.preu4Setmanes}
+                onChange={(e) => setConfig({
+                  ...config,
+                  tarifes: { ...config.tarifes, preu4Setmanes: Number(e.target.value) || 0 }
+                })}
+              />
+              <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>Campus sencer (mes complet)</span>
+            </div>
+          </div>
+
+          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Sparkles size={18} color="#10b981" />
+            <span>Suplements i Descomptes Especials</span>
+          </h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div className="form-group" style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <label className="form-label">Menjador (€ / setmana)</label>
+              <input
+                type="number"
+                min="0"
+                className="form-input"
+                value={config.tarifes.preuMenjadorSetmana}
+                onChange={(e) => setConfig({
+                  ...config,
+                  tarifes: { ...config.tarifes, preuMenjadorSetmana: Number(e.target.value) || 0 }
+                })}
+              />
+              <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>Dinar i estada fins a les 15:30h</span>
+            </div>
+
+            <div className="form-group" style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <label className="form-label">Escoleta Matinera (€ / setmana)</label>
+              <input
+                type="number"
+                min="0"
+                className="form-input"
+                value={config.tarifes.preuMatineraSetmana}
+                onChange={(e) => setConfig({
+                  ...config,
+                  tarifes: { ...config.tarifes, preuMatineraSetmana: Number(e.target.value) || 0 }
+                })}
+              />
+              <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>Entrada anticipada des de les 7:45h</span>
+            </div>
+
+            <div className="form-group" style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <label className="form-label">Descompte Socis C.D. Murense (%)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                className="form-input"
+                value={config.tarifes.descompteSociPercent}
+                onChange={(e) => setConfig({
+                  ...config,
+                  tarifes: { ...config.tarifes, descompteSociPercent: Number(e.target.value) || 0 }
+                })}
+              />
+              <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>Percentatge sobre la quota base</span>
+            </div>
+
+            <div className="form-group" style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <label className="form-label">Descompte Germans / Fam. Nombrosa (%)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                className="form-input"
+                value={config.tarifes.descompteGermansPercent}
+                onChange={(e) => setConfig({
+                  ...config,
+                  tarifes: { ...config.tarifes, descompteGermansPercent: Number(e.target.value) || 0 }
+                })}
+              />
+              <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>No acumulable segons normativa</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONTINGUT DE LA PESTANYA 2: GRUPS I CAPACITATS */}
+      {activeTab === 'grups' && (
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Users size={20} color="var(--primary)" />
-            <span>Grups, Quotes i Capacitat</span>
-          </h2>
-          <p style={{ fontSize: '13.5px', color: 'var(--text-muted)' }}>
-            Configura els preus per setmana, suplements opcionals, aforaments i ràtios per categoria.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+            <div>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)' }}>
+                Categories del Campus
+              </h2>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                Configura els límits de places, edats i monitors assignats per a cada grup esportiu.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="btn-hero-primary"
+              onClick={handleOpenNewGroup}
+              style={{ fontSize: '13px', padding: '7px 14px' }}
+            >
+              <Plus size={16} />
+              <span>Afegir nou grup</span>
+            </button>
+          </div>
+
+          <div className="groups-config-grid">
+            {config.grups.map((grup) => (
+              <article key={grup.id} className="group-config-card">
+                <div className="group-card-header">
+                  <div className="group-card-title-wrap">
+                    <span className="group-color-indicator" style={{ backgroundColor: grup.color }} />
+                    <div>
+                      <h3 className="group-card-name" style={{ color: grup.color }}>{grup.nom}</h3>
+                      <p className="group-card-sub">{grup.subtitol}</p>
+                    </div>
+                  </div>
+
+                  <div className="group-card-actions">
+                    <button
+                      type="button"
+                      className="btn-group-action"
+                      onClick={() => handleOpenEditGroup(grup)}
+                      title={`Editar ${grup.nom}`}
+                    >
+                      <Edit2 size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-group-action delete"
+                      onClick={() => handleDeleteGroup(grup.id, grup.nom)}
+                      title={`Eliminar ${grup.nom}`}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="group-card-meta-grid">
+                  <div className="group-meta-item">
+                    <span className="group-meta-label">
+                      <Users size={12} />
+                      Capacitat màx.
+                    </span>
+                    <span className="group-meta-val highlight">{grup.placesMaximes} places</span>
+                  </div>
+
+                  <div className="group-meta-item">
+                    <span className="group-meta-label">
+                      <UserCheck size={12} />
+                      Ràtio Monitor
+                    </span>
+                    <span className="group-meta-val" style={{ fontSize: '12px' }}>{grup.ratioMonitor}</span>
+                  </div>
+
+                  <div className="group-meta-item">
+                    <span className="group-meta-label">
+                      <Clock size={12} />
+                      Edats
+                    </span>
+                    <span className="group-meta-val" style={{ fontSize: '12px' }}>{grup.edats}</span>
+                  </div>
+
+                  <div className="group-meta-item">
+                    <span className="group-meta-label">
+                      <Waves size={12} />
+                      Piscina
+                    </span>
+                    <span className="group-meta-val" style={{ fontSize: '12px' }}>{grup.tornPiscina}</span>
+                  </div>
+                </div>
+
+                <div className="group-card-footer-info" style={{ marginTop: '14px', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <MapPin size={13} style={{ color: '#10b981' }} />
+                    <span>Zona: <strong>{grup.zonaEntrenament}</strong></span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={13} style={{ color: '#0284c7' }} />
+                    <span>Pilota: <strong>{grup.pilotaRecomanada}</strong></span>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
+      )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            type="button"
-            className="btn-topbar-ghost"
-            onClick={handleResetDefaults}
-            style={{ fontSize: '12.5px', padding: '7px 12px' }}
-            title="Restablir valors inicials"
-          >
-            Valors per defecte
-          </button>
+      {/* CONTINGUT DE LA PESTANYA 3: DADES BANCÀRIES I PAGAMENT */}
+      {activeTab === 'banc' && (
+        <div className="data-table-card" style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CreditCard size={20} color="var(--primary)" />
+              <span>Dades de Transferència i Formalització</span>
+            </h2>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              Aquestes dades s'indiquen a les famílies al Pas 5 (Resum d'inscripció) per fer el pagament de la quota.
+            </p>
+          </div>
 
-          <button
-            type="button"
-            className="btn-hero-primary"
-            onClick={handleOpenNewGroup}
-            style={{ padding: '8px 16px', fontSize: '13.5px' }}
-          >
-            <Plus size={16} />
-            <span>Nou grup</span>
-          </button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+            <div className="form-group">
+              <label className="form-label">Número de Compte (IBAN) *</label>
+              <input
+                type="text"
+                className="form-input"
+                value={config.banc.iban}
+                onChange={(e) => setConfig({
+                  ...config,
+                  banc: { ...config.banc, iban: e.target.value }
+                })}
+                placeholder="ESXX XXXX XXXX XXXX XXXX"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Entitat Bancària</label>
+              <input
+                type="text"
+                className="form-input"
+                value={config.banc.entitat}
+                onChange={(e) => setConfig({
+                  ...config,
+                  banc: { ...config.banc, entitat: e.target.value }
+                })}
+                placeholder="Ex: Caixa Colonya / CaixaBank"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Titular del Compte</label>
+              <input
+                type="text"
+                className="form-input"
+                value={config.banc.titular}
+                onChange={(e) => setConfig({
+                  ...config,
+                  banc: { ...config.banc, titular: e.target.value }
+                })}
+                placeholder="Club Esportiu C.D. Murense"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Concepte Recomanat</label>
+              <input
+                type="text"
+                className="form-input"
+                value={config.banc.concepte}
+                onChange={(e) => setConfig({
+                  ...config,
+                  banc: { ...config.banc, concepte: e.target.value }
+                })}
+                placeholder="CAMPUS [NOM_INFANT] 2027"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Data Límit de Pagament</label>
+              <input
+                type="text"
+                className="form-input"
+                value={config.banc.dataLimit}
+                onChange={(e) => setConfig({
+                  ...config,
+                  banc: { ...config.banc, dataLimit: e.target.value }
+                })}
+                placeholder="Ex: 10/06/2027"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Correu per Rebre Justificants</label>
+              <input
+                type="email"
+                className="form-input"
+                value={config.banc.emailJustificants}
+                onChange={(e) => setConfig({
+                  ...config,
+                  banc: { ...config.banc, emailJustificants: e.target.value }
+                })}
+                placeholder="campuscdmurense@gmail.com"
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Horari d'Atenció Presencial a l'Oficina del Club</label>
+            <input
+              type="text"
+              className="form-input"
+              value={config.banc.horariOficina}
+              onChange={(e) => setConfig({
+                ...config,
+                banc: { ...config.banc, horariOficina: e.target.value }
+              })}
+              placeholder="Dilluns i Dimecres 18:30h - 20:00h | Dimarts 19:00h - 20:30h"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Graella de Targetes de Grups */}
-      <div className="groups-config-grid">
-        {grups.map((grup) => (
-          <article key={grup.id} className="group-config-card">
-            {/* Capçalera del grup */}
-            <div className="group-card-header">
-              <div className="group-card-title-wrap">
-                <span className="group-color-indicator" style={{ backgroundColor: grup.color }} />
-                <div>
-                  <h3 className="group-card-name" style={{ color: grup.color }}>{grup.nom}</h3>
-                  <p className="group-card-sub">{grup.subtitol}</p>
+      {/* CONTINGUT DE LA PESTANYA 4: CALENDARI I TORNS */}
+      {activeTab === 'calendari' && (
+        <div className="data-table-card" style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Calendar size={20} color="var(--primary)" />
+              <span>Edició del Campus i Dates de les Setmanes</span>
+            </h2>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              Modifica les dates de cada torn setmanal i l'estat d'admissió de noves inscripcions.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            <div className="form-group">
+              <label className="form-label">Any de l'Edició</label>
+              <input
+                type="number"
+                className="form-input"
+                value={config.calendari.anyCampus}
+                onChange={(e) => setConfig({
+                  ...config,
+                  calendari: { ...config.calendari, anyCampus: Number(e.target.value) || 2027 }
+                })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Estat de les Inscripcions</label>
+              <select
+                className="form-select"
+                value={config.calendari.estatInscripcions}
+                onChange={(e) => setConfig({
+                  ...config,
+                  calendari: { 
+                    ...config.calendari, 
+                    estatInscripcions: e.target.value as 'OBERTA' | 'PAUSADA' | 'TANCADA' 
+                  }
+                })}
+              >
+                <option value="OBERTA">🟢 OBERTES (Acceptant formularis)</option>
+                <option value="PAUSADA">🟡 PAUSADES (Llista d'espera)</option>
+                <option value="TANCADA">🔴 TANCADES (Places exhaurides)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '24px' }}>
+            <label className="form-label">Bàner d'Avís Públic per a les Famílies</label>
+            <input
+              type="text"
+              className="form-input"
+              value={config.calendari.avisEstat}
+              onChange={(e) => setConfig({
+                ...config,
+                calendari: { ...config.calendari, avisEstat: e.target.value }
+              })}
+              placeholder="Ex: Període d'inscripcions oficial obert per a nins i nines de 4 a 14 anys."
+            />
+          </div>
+
+          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '14px' }}>
+            Torns Setmanals Disponibles
+          </h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+            {config.calendari.setmanes.map((setmana, idx) => (
+              <div key={setmana.num} style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <strong style={{ fontSize: '14px', color: '#0f172a', display: 'block', marginBottom: '8px' }}>
+                  {setmana.nom}
+                </strong>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '12px' }}>Rang de Dates</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={setmana.dates}
+                    onChange={(e) => handleWeekChange(idx, 'dates', e.target.value)}
+                    placeholder="Ex: 28 Juny - 2 Juliol"
+                  />
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-              <div className="group-card-actions">
-                <button
-                  type="button"
-                  className="btn-group-action"
-                  onClick={() => handleOpenEditGroup(grup)}
-                  title={`Editar ${grup.nom}`}
-                >
-                  <Edit2 size={15} />
-                </button>
-                <button
-                  type="button"
-                  className="btn-group-action delete"
-                  onClick={() => handleDeleteGroup(grup.id, grup.nom)}
-                  title={`Eliminar ${grup.nom}`}
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
+      {/* CONTINGUT DE LA PESTANYA 5: INSTAL·LACIONS I CONTACTE */}
+      {activeTab === 'instalacions' && (
+        <div className="data-table-card" style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Building size={20} color="var(--primary)" />
+              <span>Horaris Generals i Contacte de Coordinació</span>
+            </h2>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              Dades de contacte ràpid, telèfons d'urgència i horaris de funcionament del campus.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+            <div className="form-group">
+              <label className="form-label">Horari General del Campus</label>
+              <input
+                type="text"
+                className="form-input"
+                value={config.logistica.horariGeneral}
+                onChange={(e) => setConfig({
+                  ...config,
+                  logistica: { ...config.logistica, horariGeneral: e.target.value }
+                })}
+                placeholder="9:00h a 14:00h"
+              />
             </div>
 
-            {/* Graella de paràmetres clau */}
-            <div className="group-card-meta-grid">
-              <div className="group-meta-item">
-                <span className="group-meta-label">
-                  <Coins size={12} />
-                  Quota setmana
-                </span>
-                <span className="group-meta-val highlight">{grup.preuSetmana} €</span>
-              </div>
-
-              <div className="group-meta-item">
-                <span className="group-meta-label">
-                  <Users size={12} />
-                  Capacitat màx.
-                </span>
-                <span className="group-meta-val">{grup.placesMaximes} places</span>
-              </div>
-
-              <div className="group-meta-item">
-                <span className="group-meta-label">
-                  <UserCheck size={12} />
-                  Ràtio
-                </span>
-                <span className="group-meta-val" style={{ fontSize: '12px' }}>{grup.ratioMonitor}</span>
-              </div>
-
-              <div className="group-meta-item">
-                <span className="group-meta-label">
-                  <Sparkles size={12} />
-                  Desc. germans
-                </span>
-                <span className="group-meta-val">-{grup.descompteGermansPercent}%</span>
-              </div>
+            <div className="form-group">
+              <label className="form-label">Horari Escoleta Matinera</label>
+              <input
+                type="text"
+                className="form-input"
+                value={config.logistica.horariMatinera}
+                onChange={(e) => setConfig({
+                  ...config,
+                  logistica: { ...config.logistica, horariMatinera: e.target.value }
+                })}
+                placeholder="7:45h a 9:00h"
+              />
             </div>
 
-            {/* Suplements de menjador i matinera */}
-            <div className="group-supplements-box">
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Menjador:</span>
-                <strong>+{grup.preuMenjadorSetmana} €/setmana</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Matinera:</span>
-                <strong>+{grup.preuMatineraSetmana} €/setmana</strong>
-              </div>
+            <div className="form-group">
+              <label className="form-label">Horari Menjador</label>
+              <input
+                type="text"
+                className="form-input"
+                value={config.logistica.horariMenjador}
+                onChange={(e) => setConfig({
+                  ...config,
+                  logistica: { ...config.logistica, horariMenjador: e.target.value }
+                })}
+                placeholder="14:00h a 15:30h"
+              />
             </div>
 
-            {/* Detalls esportius i logístics */}
-            <div className="group-card-footer-info">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Clock size={13} style={{ color: '#0066f5' }} />
-                <span>Edats: <strong>{grup.edats}</strong></span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MapPin size={13} style={{ color: '#10b981' }} />
-                <span>Zona: <strong>{grup.zonaEntrenament}</strong></span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Waves size={13} style={{ color: '#0284c7' }} />
-                <span>Piscina: <strong>{grup.tornPiscina}</strong></span>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-
-      {/* Secció 2: Paràmetres Generals del Club */}
-      <div style={{ marginTop: '16px', marginBottom: '14px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Building size={18} color="var(--primary)" />
-          <span>Informació i Paràmetres Generals</span>
-        </h2>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-          Consulteu les condicions generals de les instal·lacions, notificacions i protecció de dades.
-        </p>
-      </div>
-
-      <div className="menu-list" style={{ boxShadow: 'var(--shadow-card)', borderRadius: '16px' }}>
-        <div 
-          className="menu-item"
-          onClick={() => alert("Dades generals Campus C.D. Murense:\n• Edició: Estiu 2027\n• Dates: 23 de Juny a 31 de Juliol\n• Horari general: 9:00h a 14:00h\n• Matinera: Des de les 7:45h\n• Menjador: Fins a les 15:30h")}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="menu-item-left">
-            <div className="menu-item-icon" style={{ background: '#eff6ff', color: '#0066f5' }}>
-              <Building size={20} />
-            </div>
-            <div>
-              <strong className="menu-item-text">Dades generals del campus</strong>
-              <p style={{ fontSize: '12.5px', color: '#64748b' }}>Calendari oficial, franges horàries i seu municipal</p>
+            <div className="form-group">
+              <label className="form-label">Seu de les Instal·lacions</label>
+              <input
+                type="text"
+                className="form-input"
+                value={config.logistica.instalacions}
+                onChange={(e) => setConfig({
+                  ...config,
+                  logistica: { ...config.logistica, instalacions: e.target.value }
+                })}
+                placeholder="Camp Municipal de Futbol de Muro (Mallorca)"
+              />
             </div>
           </div>
-          <ChevronRight size={18} className="menu-item-arrow" />
-        </div>
 
-        <div 
-          className="menu-item"
-          onClick={() => alert("Equip de monitors C.D. Murense:\n• 1 Director esportiu i Coordinador general\n• 4 Monitors diplomats en activitat física i lleure\n• 1 Socorrista titulat permanent a la piscina")}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="menu-item-left">
-            <div className="menu-item-icon" style={{ background: '#ecfdf5', color: '#10b981' }}>
-              <UserCheck size={20} />
+          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Phone size={18} color="#0066f5" />
+            <span>Canals de Contacte de la Coordinació</span>
+          </h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+            <div className="form-group">
+              <label className="form-label">Telèfon de Coordinació</label>
+              <input
+                type="text"
+                className="form-input"
+                value={config.contacte.telefon}
+                onChange={(e) => setConfig({
+                  ...config,
+                  contacte: { ...config.contacte, telefon: e.target.value }
+                })}
+                placeholder="612 345 678"
+              />
             </div>
-            <div>
-              <strong className="menu-item-text">Monitors i equip tècnic</strong>
-              <p style={{ fontSize: '12.5px', color: '#64748b' }}>Personal autoritzat per a passar llista i coordinació</p>
+
+            <div className="form-group">
+              <label className="form-label">Número de WhatsApp (sense espais, amb prefix)</label>
+              <input
+                type="text"
+                className="form-input"
+                value={config.contacte.whatsapp}
+                onChange={(e) => setConfig({
+                  ...config,
+                  contacte: { ...config.contacte, whatsapp: e.target.value }
+                })}
+                placeholder="34612345678"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Correu Oficial de Coordinació</label>
+              <input
+                type="email"
+                className="form-input"
+                value={config.contacte.email}
+                onChange={(e) => setConfig({
+                  ...config,
+                  contacte: { ...config.contacte, email: e.target.value }
+                })}
+                placeholder="campus@cdmurense.com"
+              />
             </div>
           </div>
-          <ChevronRight size={18} className="menu-item-arrow" />
         </div>
+      )}
 
-        <div 
-          className="menu-item"
-          onClick={() => alert("Notificacions del campus:\n• Missatges d'assistència i avisos urgents via email i web pública.\n• Recordatoris automàtics de quotes de pagament.")}
-          role="button"
-          tabIndex={0}
+      {/* Botó Flotant / Inferior de Desar Canvis */}
+      <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+        <button
+          type="button"
+          className="btn-hero-primary"
+          onClick={handleSaveAllConfig}
+          disabled={saving}
+          style={{ padding: '10px 22px', fontSize: '14px' }}
         >
-          <div className="menu-item-left">
-            <div className="menu-item-icon" style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
-              <Bell size={20} />
-            </div>
-            <div>
-              <strong className="menu-item-text">Canals de notificació</strong>
-              <p style={{ fontSize: '12.5px', color: '#64748b' }}>Avisos automàtics de comunicats i pagaments pendents</p>
-            </div>
-          </div>
-          <ChevronRight size={18} className="menu-item-arrow" />
-        </div>
-
-        <div 
-          className="menu-item"
-          onClick={() => alert("Informació legal i RGPD:\n• Tractament de dades de menors d'edat regulat segons la LOPDGDD.\n• Autoritzacions mèdiques, administració de medicaments i drets d'imatge validats en el formulari d'inscripció.")}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="menu-item-left">
-            <div className="menu-item-icon" style={{ background: '#f1f5f9', color: '#475569' }}>
-              <ShieldCheck size={20} />
-            </div>
-            <div>
-              <strong className="menu-item-text">Informació legal i RGPD</strong>
-              <p style={{ fontSize: '12.5px', color: '#64748b' }}>Protecció de dades de menors, al·lèrgies i drets d'imatge</p>
-            </div>
-          </div>
-          <ChevronRight size={18} className="menu-item-arrow" />
-        </div>
+          <Save size={18} />
+          <span>{saving ? 'Guardant a la base de dades...' : 'Desar tota la configuració'}</span>
+        </button>
       </div>
 
       {/* Modal d'Edició / Creació de Grup */}
-      {isModalOpen && (
-        <div className="noticia-modal-overlay" onClick={() => setIsModalOpen(false)}>
+      {isGroupModalOpen && (
+        <div className="noticia-modal-overlay" onClick={() => setIsGroupModalOpen(false)}>
           <div 
             className="noticia-modal-card" 
             style={{ maxWidth: '620px', maxHeight: '90vh', overflowY: 'auto' }}
@@ -539,7 +923,7 @@ export const SettingsPage: React.FC = () => {
             <div className="noticia-modal-header">
               <div>
                 <h3 className="noticia-modal-title">
-                  {editingGroup ? `Editar configuració de ${editingGroup.nom}` : 'Crear Nou Grup del Campus'}
+                  {editingGroup ? `Editar ${editingGroup.nom}` : 'Crear Nou Grup del Campus'}
                 </h3>
                 <p className="noticia-modal-subtitle">
                   Defineix el preu setmanal, suplements, capacitat i instal·lacions assignades
@@ -548,15 +932,14 @@ export const SettingsPage: React.FC = () => {
               <button 
                 type="button" 
                 className="btn-modal-close" 
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => setIsGroupModalOpen(false)}
                 aria-label="Tancar formulari"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveGroup} className="noticia-form">
-              {/* Bloc 1: Dades Bàsiques */}
+            <form onSubmit={handleSaveGroupModal} className="noticia-form">
               <div style={{ marginBottom: '18px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: '8px' }}>
                   1. Dades Bàsiques i Identificació
@@ -608,7 +991,7 @@ export const SettingsPage: React.FC = () => {
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="form-edats">Rang d'edats *</label>
+                    <label className="form-label" htmlFor="form-edats">Franja d'edats</label>
                     <input
                       id="form-edats"
                       type="text"
@@ -616,87 +999,27 @@ export const SettingsPage: React.FC = () => {
                       value={formEdats}
                       onChange={(e) => setFormEdats(e.target.value)}
                       placeholder="Ex: 4 a 7 anys (2019-2022)"
-                      required
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Bloc 2: Preus i Quotes */}
-              <div style={{ marginBottom: '18px', paddingTop: '14px', borderTop: '1px solid #f1f5f9' }}>
+              <div style={{ marginBottom: '18px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: '8px' }}>
-                  2. Quotes i Tarifes Econòmiques
-                </span>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="form-preu" style={{ fontSize: '12px' }}>Preu Setmana (€)</label>
-                    <input
-                      id="form-preu"
-                      type="number"
-                      min={0}
-                      className="form-input"
-                      value={formPreu}
-                      onChange={(e) => setFormPreu(Number(e.target.value))}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="form-menjador" style={{ fontSize: '12px' }}>Menjador (€/set)</label>
-                    <input
-                      id="form-menjador"
-                      type="number"
-                      min={0}
-                      className="form-input"
-                      value={formMenjador}
-                      onChange={(e) => setFormMenjador(Number(e.target.value))}
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="form-matinera" style={{ fontSize: '12px' }}>Matinera (€/set)</label>
-                    <input
-                      id="form-matinera"
-                      type="number"
-                      min={0}
-                      className="form-input"
-                      value={formMatinera}
-                      onChange={(e) => setFormMatinera(Number(e.target.value))}
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="form-descompte" style={{ fontSize: '12px' }}>Desc. Germans (%)</label>
-                    <input
-                      id="form-descompte"
-                      type="number"
-                      min={0}
-                      max={100}
-                      className="form-input"
-                      value={formDescompte}
-                      onChange={(e) => setFormDescompte(Number(e.target.value))}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Bloc 3: Capacitat i Ràtios */}
-              <div style={{ marginBottom: '18px', paddingTop: '14px', borderTop: '1px solid #f1f5f9' }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: '8px' }}>
-                  3. Capacitat i Ràtios d'Entrenadors
+                  2. Capacitat i Ràtio de Monitors
                 </span>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="form-places">Places màximes (aforament) *</label>
+                    <label className="form-label" htmlFor="form-places">Capacitat màxima (places) *</label>
                     <input
                       id="form-places"
                       type="number"
-                      min={1}
+                      min="1"
+                      max="100"
                       className="form-input"
                       value={formPlaces}
-                      onChange={(e) => setFormPlaces(Number(e.target.value))}
+                      onChange={(e) => setFormPlaces(Number(e.target.value) || 25)}
                       required
                     />
                   </div>
@@ -709,33 +1032,32 @@ export const SettingsPage: React.FC = () => {
                       className="form-input"
                       value={formRatio}
                       onChange={(e) => setFormRatio(e.target.value)}
-                      placeholder="Ex: 1 monitor / 10 nins"
+                      placeholder="Ex: 1 monitor / 8 nins"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Bloc 4: Instal·lacions i Logística */}
-              <div style={{ marginBottom: '18px', paddingTop: '14px', borderTop: '1px solid #f1f5f9' }}>
+              <div style={{ marginBottom: '18px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: '8px' }}>
-                  4. Logística i Equipament Esportiu
+                  3. Instal·lacions i Logística Esportiva
                 </span>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="form-zona" style={{ fontSize: '12px' }}>Zona del Camp</label>
+                    <label className="form-label" htmlFor="form-zona">Zona d'entrenament</label>
                     <input
                       id="form-zona"
                       type="text"
                       className="form-input"
                       value={formZona}
                       onChange={(e) => setFormZona(e.target.value)}
-                      placeholder="Ex: Camp F7 A"
+                      placeholder="Ex: Camp F7 A i Poliesportiu"
                     />
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="form-piscina" style={{ fontSize: '12px' }}>Torn de Piscina</label>
+                    <label className="form-label" htmlFor="form-piscina">Torn de piscina diària</label>
                     <input
                       id="form-piscina"
                       type="text"
@@ -745,40 +1067,35 @@ export const SettingsPage: React.FC = () => {
                       placeholder="Ex: 11:30h a 12:30h"
                     />
                   </div>
+                </div>
 
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="form-pilota" style={{ fontSize: '12px' }}>Pilota</label>
-                    <select
-                      id="form-pilota"
-                      className="form-select"
-                      value={formPilota}
-                      onChange={(e) => setFormPilota(e.target.value)}
-                    >
-                      <option value="Talla 3">Talla 3</option>
-                      <option value="Talla 4">Talla 4</option>
-                      <option value="Talla 5">Talla 5</option>
-                      <option value="Multiesport">Multiesport</option>
-                    </select>
-                  </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="form-pilota">Mida de pilota recomanada</label>
+                  <input
+                    id="form-pilota"
+                    type="text"
+                    className="form-input"
+                    value={formPilota}
+                    onChange={(e) => setFormPilota(e.target.value)}
+                    placeholder="Ex: Talla 3 (Peques) o Talla 4 / 5"
+                  />
                 </div>
               </div>
 
-              {/* Botons d'acció */}
-              <div className="noticia-modal-footer">
+              <div className="noticia-modal-actions">
                 <button
                   type="button"
                   className="btn-hero-secondary"
-                  onClick={() => setIsModalOpen(false)}
-                  style={{ padding: '9px 18px', fontSize: '14px' }}
+                  onClick={() => setIsGroupModalOpen(false)}
                 >
                   Cancel·lar
                 </button>
                 <button
                   type="submit"
                   className="btn-hero-primary"
-                  style={{ padding: '9px 20px', fontSize: '14px' }}
                 >
-                  {editingGroup ? 'Desar canvis' : 'Crear grup'}
+                  <Save size={16} />
+                  <span>{editingGroup ? 'Guardar canvis del grup' : 'Crear grup'}</span>
                 </button>
               </div>
             </form>

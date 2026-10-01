@@ -11,9 +11,9 @@ import {
   AlertTriangle 
 } from 'lucide-react';
 import type { InscripcioState } from '../../../types/inscripcio';
-import { PREUS_CAMPUS_SETMANA } from './Step3ServicesData';
 import { submitInscripcio } from '../../../api/campusApi';
 import { trackEvent } from '../../../utils/analytics';
+import { getStoredCampusConfig } from '../../../utils/campusConfig';
 
 interface Step5SummaryDataProps {
   formData: InscripcioState;
@@ -27,17 +27,30 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
   onConfirm,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const config = getStoredCampusConfig();
 
-  // Càlculs econòmics oficials
+  // Càlculs econòmics dinàmics basats en la configuració del club
+  const preusCampus: { [key: number]: number } = {
+    1: config.tarifes.preu1Setmana,
+    2: config.tarifes.preu2Setmanes,
+    3: config.tarifes.preu3Setmanes,
+    4: config.tarifes.preu4Setmanes,
+  };
+
   const countWeeks = formData.serveis.setmanes.length;
-  const basePrice = PREUS_CAMPUS_SETMANA[countWeeks] || (countWeeks > 0 ? countWeeks * 90 : 0);
+  const basePrice = preusCampus[countWeeks] || (countWeeks > 0 ? countWeeks * config.tarifes.preu1Setmana : 0);
 
-  const discountRate = formData.serveis.descompte === 'cap' ? 0 : 0.10;
+  const discountRate = formData.serveis.descompte === 'murense' 
+    ? (config.tarifes.descompteSociPercent / 100) 
+    : formData.serveis.descompte === 'nombrosa' 
+    ? (config.tarifes.descompteGermansPercent / 100) 
+    : 0;
+
   const discountAmount = Math.round(basePrice * discountRate);
   const baseAfterDiscount = basePrice - discountAmount;
 
-  const menjadorPrice = formData.serveis.menjador ? countWeeks * 35 : 0;
-  const matineraPrice = formData.serveis.matinera ? countWeeks * 15 : 0;
+  const menjadorPrice = formData.serveis.menjador ? countWeeks * config.tarifes.preuMenjadorSetmana : 0;
+  const matineraPrice = formData.serveis.matinera ? countWeeks * config.tarifes.preuMatineraSetmana : 0;
   const totalPrice = baseAfterDiscount + menjadorPrice + matineraPrice;
 
   const handleFinalSubmit = async () => {
@@ -220,7 +233,7 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
         <div>
           <span className="summary-total-title">Total Final de la Inscripció</span>
           <div style={{ fontSize: '13px', opacity: 0.85, marginTop: '2px' }}>
-            Data límit per a fer la inscripció i pagament: <strong>10/06/2027</strong>
+            Data límit per a fer la inscripció i pagament: <strong>{config.banc.dataLimit}</strong>
           </div>
         </div>
         <span className="summary-total-amount">{totalPrice} €</span>
@@ -250,10 +263,13 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
               💳 Pagament per Transferència Bancària:
             </strong>
             <p style={{ margin: '0 0 4px', fontFamily: 'monospace', fontWeight: 700, fontSize: '12.5px', color: '#0066f5' }}>
-              IBAN: ES93 2056 0016 0520 8320 6827
+              IBAN: {config.banc.iban}
             </p>
             <p style={{ margin: 0, fontSize: '12px' }}>
-              Concepte: <em>Nom de l'infant + Campus 2027</em>
+              Entitat: <em>{config.banc.entitat}</em>
+            </p>
+            <p style={{ margin: '2px 0 0', fontSize: '12px' }}>
+              Concepte: <em>{config.banc.concepte.replace('[NOM_INFANT]', formData.nen.nom.toUpperCase())}</em>
             </p>
           </div>
 
@@ -262,9 +278,7 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
               🏟️ Atenció Presencial a l'Oficina del Club:
             </strong>
             <p style={{ margin: 0, lineHeight: 1.5 }}>
-              • Dilluns: 18:30h - 20:00h<br />
-              • Dimarts: 19:00h - 20:30h<br />
-              • Dimecres: 18:30h - 20:00h
+              {config.banc.horariOficina}
             </p>
           </div>
         </div>
@@ -272,7 +286,7 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
         <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#b45309' }}>
           <AlertTriangle size={16} style={{ flexShrink: 0 }} />
           <span>
-            *La inscripció només quedarà completada una vegada es faci l'entrega de tota la documentació requerida (data límit: <strong>10/06/2027</strong>). Recomanam enviar el justificant a <strong>campuscdmurense@gmail.com</strong>.
+            *La inscripció només quedarà completada una vegada es faci l'entrega de tota la documentació requerida (data límit: <strong>{config.banc.dataLimit}</strong>). Recomanam enviar el justificant a <strong>{config.banc.emailJustificants}</strong>.
           </span>
         </div>
       </div>
