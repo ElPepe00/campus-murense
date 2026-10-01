@@ -9,7 +9,6 @@ import {
   Settings, 
   LogOut, 
   Bell, 
-  MessageSquare,
   X
 } from 'lucide-react';
 import type { PageTabKey } from './Navbar';
@@ -64,7 +63,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside className={`admin-sidebar ${isOpenMobile ? 'mobile-open' : ''}`}>
         {/* Capçalera del Club */}
         <div className="sidebar-header">
-          <div className="sidebar-brand">
+          <div 
+            className="sidebar-brand" 
+            onClick={() => handleNavClick('inici')}
+            style={{ cursor: 'pointer' }}
+            title="Anar al Tauler d'Inici de l'Admin"
+          >
             <img 
               src="/logo.png" 
               alt="C.D. Murense" 
@@ -148,34 +152,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             <button
               type="button"
+              className={`sidebar-link ${activeTab === 'admin-noticies' ? 'active' : ''}`}
+              onClick={() => handleNavClick('admin-noticies')}
+            >
+              <Bell size={18} />
+              <span>Gestió de Notícies</span>
+            </button>
+
+            <button
+              type="button"
               className={`sidebar-link ${activeTab === 'admin-configuracio' ? 'active' : ''}`}
               onClick={() => handleNavClick('admin-configuracio')}
             >
               <Settings size={18} />
               <span>Configuració del Club</span>
-            </button>
-          </nav>
-
-          <span className="sidebar-section-title" style={{ marginTop: '24px' }}>
-            PORTAL PÚBLIC
-          </span>
-          <nav className="sidebar-menu">
-            <button
-              type="button"
-              className={`sidebar-link ${activeTab === 'noticies' ? 'active' : ''}`}
-              onClick={() => handleNavClick('noticies')}
-            >
-              <Bell size={18} />
-              <span>Tauler de Notícies</span>
-            </button>
-
-            <button
-              type="button"
-              className={`sidebar-link ${activeTab === 'contacte' ? 'active' : ''}`}
-              onClick={() => handleNavClick('contacte')}
-            >
-              <MessageSquare size={18} />
-              <span>Bústia de Contacte</span>
             </button>
           </nav>
         </div>

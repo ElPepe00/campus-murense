@@ -17,6 +17,7 @@ import { AttendancePage } from './pages/admin/AttendancePage';
 import { PaymentsPage } from './pages/admin/PaymentsPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
+import { NoticiesManagementPage } from './pages/admin/NoticiesManagementPage';
 import { LegalPage } from './pages/public/LegalPage';
 import { PrivacyPage } from './pages/public/PrivacyPage';
 import { CookiesPage } from './pages/public/CookiesPage';
@@ -50,6 +51,16 @@ function getTabFromPath(path: string): PageTabKey {
   if (cleanPath === '/politica-cookies' || cleanPath === '/cookies') {
     return 'politica-cookies';
   }
+  if (cleanPath === '/admin' || cleanPath === '/admin/inici') {
+    return 'inici';
+  }
+  if (cleanPath === '/admin/llistat-inscrits') return 'admin-inscripcions';
+  if (cleanPath === '/admin/assistencia') return 'admin-assistencia';
+  if (cleanPath === '/admin/pagaments') return 'admin-pagos';
+  if (cleanPath === '/admin/informes') return 'admin-informes';
+  if (cleanPath === '/admin/configuracio') return 'admin-configuracio';
+  if (cleanPath === '/admin/gestio-noticies') return 'admin-noticies';
+
   return 'not-found';
 }
 
@@ -74,11 +85,7 @@ function MainAppContent() {
     window.history.pushState({}, '', path);
     setCurrentPath(path);
     setSelectedChildId(null);
-    if (!path.startsWith('/admin')) {
-      setActiveTab(getTabFromPath(path));
-    } else {
-      setActiveTab('inici');
-    }
+    setActiveTab(getTabFromPath(path));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -88,11 +95,7 @@ function MainAppContent() {
       const path = window.location.pathname;
       setCurrentPath(path);
       setSelectedChildId(null);
-      if (!path.startsWith('/admin')) {
-        setActiveTab(getTabFromPath(path));
-      } else {
-        setActiveTab('inici');
-      }
+      setActiveTab(getTabFromPath(path));
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -158,35 +161,27 @@ function MainAppContent() {
 
   const handleTabChange = (tab: PageTabKey) => {
     setSelectedChildId(null);
-    if (tab === 'inscripcio') {
-      navigateTo('/inscripcio');
+
+    if (isAdminRoute) {
+      if (tab === 'inici') navigateTo('/admin');
+      else if (tab === 'admin-inscripcions') navigateTo('/admin/llistat-inscrits');
+      else if (tab === 'admin-assistencia') navigateTo('/admin/assistencia');
+      else if (tab === 'admin-pagos') navigateTo('/admin/pagaments');
+      else if (tab === 'admin-informes') navigateTo('/admin/informes');
+      else if (tab === 'admin-configuracio') navigateTo('/admin/configuracio');
+      else if (tab === 'admin-noticies') navigateTo('/admin/gestio-noticies');
       return;
     }
-    if (tab === 'noticies') {
-      navigateTo('/noticies');
-      return;
-    }
-    if (tab === 'contacte') {
-      navigateTo('/contacte');
-      return;
-    }
-    if (tab === 'avis-legal') {
-      navigateTo('/avis-legal');
-      return;
-    }
-    if (tab === 'politica-privacitat') {
-      navigateTo('/politica-privacitat');
-      return;
-    }
-    if (tab === 'politica-cookies') {
-      navigateTo('/politica-cookies');
-      return;
-    }
-    if (tab === 'inici') {
-      navigateTo('/');
-      return;
-    }
-    setActiveTab(tab);
+
+    // Rutes de navegació de la web pública per a famílies
+    if (tab === 'inscripcio') navigateTo('/inscripcio');
+    else if (tab === 'noticies') navigateTo('/noticies');
+    else if (tab === 'contacte') navigateTo('/contacte');
+    else if (tab === 'avis-legal') navigateTo('/avis-legal');
+    else if (tab === 'politica-privacitat') navigateTo('/politica-privacitat');
+    else if (tab === 'politica-cookies') navigateTo('/politica-cookies');
+    else if (tab === 'inici') navigateTo('/');
+    else setActiveTab(tab);
   };
 
   // =========================================================================
@@ -222,6 +217,7 @@ function MainAppContent() {
               setActiveTab('inici');
               navigateTo('/');
             }}
+            onNavigateHome={() => handleTabChange('inici')}
             apiConnected={apiConnected}
           />
 
@@ -250,6 +246,7 @@ function MainAppContent() {
             {activeTab === 'admin-pagos' && <PaymentsPage />}
             {activeTab === 'admin-informes' && <ReportsPage />}
             {activeTab === 'admin-configuracio' && <SettingsPage />}
+            {activeTab === 'admin-noticies' && <NoticiesManagementPage />}
             {activeTab === 'inscripcio' && (
               <RegistrationWizard
                 onCancel={() => handleTabChange('inici')}

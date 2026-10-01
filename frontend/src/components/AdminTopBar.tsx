@@ -7,6 +7,7 @@ interface AdminTopBarProps {
   activeTab: PageTabKey;
   onToggleSidebar: () => void;
   onViewPublicSite: () => void;
+  onNavigateHome?: () => void;
   apiConnected?: boolean | null;
 }
 
@@ -26,6 +27,7 @@ export const AdminTopBar: React.FC<AdminTopBarProps> = ({
   activeTab,
   onToggleSidebar,
   onViewPublicSite,
+  onNavigateHome,
   apiConnected,
 }) => {
   const currentTitle = TAB_TITLES[activeTab] || "Panell de Gestió";
@@ -42,7 +44,12 @@ export const AdminTopBar: React.FC<AdminTopBarProps> = ({
           <Menu size={22} />
         </button>
 
-        <div className="admin-breadcrumb">
+        <div 
+          className="admin-breadcrumb"
+          onClick={onNavigateHome}
+          style={{ cursor: onNavigateHome ? 'pointer' : 'default' }}
+          title={onNavigateHome ? "Tornar al Tauler d'Inici de l'Admin" : undefined}
+        >
           <img 
             src="/logo.png" 
             alt="C.D. Murense" 

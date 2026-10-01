@@ -23,7 +23,8 @@ export type PageTabKey =
   | 'admin-assistencia' 
   | 'admin-pagos' 
   | 'admin-informes' 
-  | 'admin-configuracio';
+  | 'admin-configuracio'
+  | 'admin-noticies';
 
 interface NavbarProps {
   activeTab: PageTabKey;
