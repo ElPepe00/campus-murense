@@ -608,3 +608,73 @@ def update_campus_config(
         raise HTTPException(status_code=500, detail="Error desant la configuració del campus")
 
 
+# --- 9. Exportació Completa de Dades per a Excel / CSV ---
+@router.get("/export/complet")
+def get_export_complet(
+    db: Session = Depends(get_db),
+    current_user: models.Usuari = Depends(get_current_user)
+):
+    """Retorna absolutament totes les dades registrades de cada infant per a exportar a Excel en un sol fitxer."""
+    resultats = (
+        db.query(models.Jugador, models.Inscripcio, models.Tutor)
+        .join(models.Inscripcio, models.Jugador.id == models.Inscripcio.jugador_id)
+        .join(models.Tutor, models.Jugador.tutor_id == models.Tutor.id)
+        .order_by(models.Jugador.id.asc())
+        .all()
+    )
+
+    avui = date.today()
+    export_llista = []
+
+    for jugador, inscripcio, tutor in resultats:
+        registre = db.query(models.RegistreAssistencia).filter(
+            models.RegistreAssistencia.jugador_id == jugador.id,
+            models.RegistreAssistencia.data == avui
+        ).first()
+
+        autoritzats = db.query(models.PersonaAutoritzada).filter(
+            models.PersonaAutoritzada.jugador_id == jugador.id
+        ).all()
+        persones_autoritzades_str = "; ".join([
+            f"{a.nom_complet} ({a.parentiu or 'Autoritzat'}, DNI: {a.dni})"
+            for a in autoritzats
+        ]) if autoritzats else "Només tutors legals"
+
+        export_llista.append({
+            "id": jugador.id,
+            "dataInscripcio": inscripcio.created_at.strftime("%d/%m/%Y %H:%M") if inscripcio.created_at else "",
+            "nom": jugador.nom_complet,
+            "dni": jugador.dni,
+            "dataNaixement": jugador.data_naixement.strftime("%d/%m/%Y") if jugador.data_naixement else "",
+            "edat": jugador.edat,
+            "poblacio": jugador.poblacio,
+            "clubProcedencia": jugador.club_procedencia,
+            "tallaRoba": jugador.talla_roba,
+            "alergies": jugador.alergies or "Cap",
+            "malalties": jugador.malalties or "Cap",
+            "tutorNom": tutor.nom_complet if tutor else "",
+            "tutorEmail": tutor.email if tutor else "",
+            "tutorTelefonPrincipal": tutor.telefon_principal if tutor else "",
+            "tutorTelefonSecundari": tutor.telefon_secundari or "",
+            "personesAutoritzades": persones_autoritzades_str,
+            "grup": inscripcio.grup_assignat or "Sense grup",
+            "setmanesContractades": inscripcio.setmanes_contractades,
+            "menjador": "SÍ" if inscripcio.servei_menjador else "NO",
+            "intoleranciesMenjador": inscripcio.intolerancies_menjador or "Cap",
+            "matinera": "SÍ" if inscripcio.servei_matinera else "NO",
+            "piscina": inscripcio.servei_piscina.value if inscripcio.servei_piscina else "NO",
+            "excursio1": "SÍ" if inscripcio.excursio_30_06 else "NO",
+            "excursio2": "SÍ" if inscripcio.excursio_07_07 else "NO",
+            "autoritzacioImatges": "SÍ" if inscripcio.autoritzacio_imatges else "NO",
+            "autoritzacioSortirSol": "SÍ" if inscripcio.autoritzacio_sortir_sol else "NO",
+            "autoritzacioSortides": "SÍ" if inscripcio.autoritzacio_sortides else "NO",
+            "descompte": inscripcio.descompte_aplicat.value if inscripcio.descompte_aplicat else "CAP",
+            "preuTotal": float(inscripcio.preu_total) if inscripcio.preu_total is not None else 0.0,
+            "estatPagament": inscripcio.estat_pagament.value if inscripcio.estat_pagament else "PENDENT",
+            "presentAvui": "PRESENT" if (registre and registre.estat == models.EstatAssistenciaEnum.PRESENT) else "ABSENT"
+        })
+
+    return export_llista
+
+
+

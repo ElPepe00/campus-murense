@@ -164,4 +164,43 @@ export async function saveCampusConfigToApi(configData: unknown): Promise<{ stat
   });
 }
 
+export interface ExportCompletItem {
+  id: number;
+  dataInscripcio: string;
+  nom: string;
+  dni: string;
+  dataNaixement: string;
+  edat: number;
+  poblacio: string;
+  clubProcedencia: string;
+  tallaRoba: string;
+  alergies: string;
+  malalties: string;
+  tutorNom: string;
+  tutorEmail: string;
+  tutorTelefonPrincipal: string;
+  tutorTelefonSecundari: string;
+  personesAutoritzades: string;
+  grup: string;
+  setmanesContractades: number;
+  menjador: string;
+  intoleranciesMenjador: string;
+  matinera: string;
+  piscina: string;
+  excursio1: string;
+  excursio2: string;
+  autoritzacioImatges: string;
+  autoritzacioSortirSol: string;
+  autoritzacioSortides: string;
+  descompte: string;
+  preuTotal: number;
+  estatPagament: string;
+  presentAvui: string;
+}
+
+export async function fetchExportComplet(): Promise<ExportCompletItem[]> {
+  return apiClient<ExportCompletItem[]>('/api/campus/export/complet');
+}
+
+
 
