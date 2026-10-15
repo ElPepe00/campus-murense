@@ -19,8 +19,9 @@ dist-ssr/
 .env.*.local
 !.env.example
 
-# Vite cache
+# Vite cache & Vercel
 .vite/
+.vercel/
 *.local
 
 # Editor
