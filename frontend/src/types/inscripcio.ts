@@ -19,8 +19,6 @@ export interface DadesNenForm {
   clubProcedencia: string;
   alergies?: string;
   malalties?: string;
-  colegi: string;
-  curs: string;
   tallaRoba: TallaCamisetaType;
   fotoUrl?: string;
 }
@@ -42,13 +40,24 @@ export interface PersonaAutoritzadaForm {
 }
 
 export interface ServeisForm {
-  setmanes: number[]; // [1], [1, 2], [1, 2, 3], [1, 2, 3, 4]
-  menjador: boolean;  // 14:00h - 15:00h
-  intoleranciesMenjador?: string;
-  matinera: boolean;
+  // Lògica 2027: Exactament 1 setmana per inscripció (Preu base: 110 €)
+  setmana: number; // 1, 2, 3 o 4
+  setmanes?: number[]; // Compatibilitat legacy
+
+  // Servei Dinar: selecció de dies individuals (8 €/dia)
+  diesDinar: string[]; // ex: ['2027-06-28', '2027-06-29']
+  intoleranciesDinar?: string;
+  intoleranciesMenjador?: string; // Àlies
+  menjador?: boolean; // Compatibilitat legacy
+
+  // Excursions (+15 € cadascuna)
+  excursio1: boolean; // Excursió 30/06/2027 (+15 €)
+  excursio2: boolean; // Excursió 07/07/2027 (+15 €)
+
+  // Descomptes no acumulables (10% sobre la base de la setmana = 11 €)
   descompte: DescompteType;
-  excursio1: boolean; // Excursió 30/06/2027
-  excursio2: boolean; // Excursió 07/07/2027
+
+  matinera?: boolean;
 }
 
 export interface AutoritzacionsForm {
@@ -65,4 +74,32 @@ export interface InscripcioState {
   autoritzats: PersonaAutoritzadaForm[];
   serveis: ServeisForm;
   autoritzacions: AutoritzacionsForm;
+}
+
+export interface ModificacioInscripcioData {
+  modificacioPermesa: boolean;
+  dataLimit: string;
+  motiuBloqueig?: string;
+  inscripcio: {
+    id: number;
+    editToken: string;
+    estatPagament: string;
+    preuTotal: number;
+    setmana: number;
+    diesDinar: string[];
+    dinarDiesTotal: number;
+    intoleranciesDinar: string;
+    excursio1: boolean;
+    excursio2: boolean;
+    descompte: DescompteType;
+    autoritzacions: {
+      imatges: boolean;
+      sortirSol: boolean;
+      sortides: boolean;
+      piscina: PiscinaOptionType;
+    };
+  };
+  nen: DadesNenForm & { id: number };
+  tutor: DadesTutorForm & { id?: number };
+  autoritzats: Array<PersonaAutoritzadaForm & { id?: number }>;
 }

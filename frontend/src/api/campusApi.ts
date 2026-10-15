@@ -1,5 +1,6 @@
 // frontend/src/api/campusApi.ts
 import { apiClient } from './client';
+import type { ModificacioInscripcioData } from '../types/inscripcio';
 
 export interface CampusStats {
   totalInscritos: number;
@@ -12,13 +13,23 @@ export interface CampusStats {
 export interface InscritListItem {
   id: number;
   inscripcioId: number;
+  editToken?: string;
   nom: string;
   edat: number;
   grup: string;
   dni: string;
+  setmana: number;
+  dinarDiesTotal: number;
+  dinarDies: string[];
+  excursio1: boolean;
+  excursio2: boolean;
+  preuTotal: number;
   pagat: boolean;
   present: boolean;
   alergies?: string;
+  tutorNom?: string;
+  tutorEmail?: string;
+  tutorTelefon?: string;
 }
 
 export interface FitxaInfant {
@@ -30,8 +41,6 @@ export interface FitxaInfant {
   poblacio: string;
   clubProcedencia: string;
   tallaRoba: string;
-  colegi: string;
-  curs: string;
   grup: string;
   alergies: string;
   malalties: string;
@@ -48,12 +57,20 @@ export interface FitxaInfant {
     parentiu: string;
   }>;
   campus: {
-    setmanes: number;
+    setmana: number;
+    setmanes?: number;
+    diesDinar: string[];
+    dinarDiesTotal: number;
+    intoleranciesDinar?: string;
+    excursio1: boolean;
+    excursio2: boolean;
     piscina: string;
     menjador: boolean;
     matinera: boolean;
+    descompte?: string;
     estatPagament: string;
     preuTotal: number;
+    editToken?: string;
   };
 }
 
@@ -131,10 +148,42 @@ export async function toggleEstatPago(inscripcioId: number) {
   });
 }
 
-export async function submitInscripcio(formData: unknown): Promise<{ status: string; inscripcioId?: number; jugadorId?: number }> {
-  return apiClient<{ status: string; inscripcioId?: number; jugadorId?: number }>('/api/campus/inscripcions', {
+export async function submitInscripcio(formData: unknown): Promise<{ status: string; inscripcioId?: number; editToken?: string; jugadorId?: number; preuTotal?: number }> {
+  return apiClient<{ status: string; inscripcioId?: number; editToken?: string; jugadorId?: number; preuTotal?: number }>('/api/campus/inscripcions', {
     method: 'POST',
     body: JSON.stringify(formData),
+  });
+}
+
+export async function fetchInscripcioPerModificar(token: string): Promise<ModificacioInscripcioData> {
+  return apiClient<ModificacioInscripcioData>(`/api/campus/inscripcions/modificar/${encodeURIComponent(token)}`);
+}
+
+export async function updateInscripcioByToken(token: string, data: unknown): Promise<{ status: string; message: string; preuTotal: number }> {
+  return apiClient<{ status: string; message: string; preuTotal: number }>(`/api/campus/inscripcions/${encodeURIComponent(token)}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export interface BulkEmailPayload {
+  subject: string;
+  body: string;
+  filter_grup?: string;
+  filter_setmana?: number;
+  filter_estat_pagament?: string;
+}
+
+export async function sendBulkEmail(payload: BulkEmailPayload): Promise<{ status: string; total: number; sent: number; failed: number; message?: string }> {
+  return apiClient<{ status: string; total: number; sent: number; failed: number; message?: string }>('/api/campus/admin/emails/bulk', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function reenviarEmailConfirmacio(inscripcioId: number): Promise<{ status: string; message: string; sent: boolean }> {
+  return apiClient<{ status: string; message: string; sent: boolean }>(`/api/campus/admin/inscripcions/${inscripcioId}/reenviar-email`, {
+    method: 'POST',
   });
 }
 
@@ -182,7 +231,12 @@ export interface ExportCompletItem {
   tutorTelefonSecundari: string;
   personesAutoritzades: string;
   grup: string;
+  setmana: number;
   setmanesContractades: number;
+  dinarDiesTotal: number;
+  dinarDies: string;
+  dinar: string;
+  intoleranciesDinar: string;
   menjador: string;
   intoleranciesMenjador: string;
   matinera: string;
@@ -201,6 +255,3 @@ export interface ExportCompletItem {
 export async function fetchExportComplet(): Promise<ExportCompletItem[]> {
   return apiClient<ExportCompletItem[]>('/api/campus/export/complet');
 }
-
-
-

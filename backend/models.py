@@ -129,6 +129,7 @@ class Inscripcio(Base):
     __tablename__ = "inscripcions"
 
     id = Column(Integer, primary_key=True, index=True)
+    edit_token = Column(String(64), unique=True, index=True, nullable=True)
     jugador_id = Column(Integer, ForeignKey("jugadors.id"), nullable=False)
     edicio_id = Column(Integer, ForeignKey("edicions_activitat.id"), nullable=False)
     
@@ -141,17 +142,20 @@ class Inscripcio(Base):
     autoritzacio_sortides = Column(Boolean, default=False)
     servei_piscina = Column(Enum(ServeiPiscinaEnum), default=ServeiPiscinaEnum.NO)
 
-    # Serveis Extra
+    # Serveis Extra - Dinar per dies individuals (8 €/dia)
     servei_menjador = Column(Boolean, default=False)
+    dinar_dies = Column(Text, nullable=True)  # JSON array amb les dates seleccionades ['2027-06-28', ...]
+    dinar_dies_total = Column(Integer, default=0)
     intolerancies_menjador = Column(Text, nullable=True)
     servei_matinera = Column(Boolean, default=False)
     
-    # Excursions
+    # Excursions (15 €/salida)
     excursio_30_06 = Column(Boolean, default=False)
     excursio_07_07 = Column(Boolean, default=False)
 
-    # Tarifes i Pagament
-    setmanes_contractades = Column(Integer, nullable=False)
+    # Tarifes i Pagament (exactament 1 setmana per inscripció/jugador)
+    setmana_seleccionada = Column(Integer, default=1, nullable=False)
+    setmanes_contractades = Column(Integer, default=1, nullable=False)
     descompte_aplicat = Column(Enum(TipusDescompteEnum), default=TipusDescompteEnum.CAP)
     preu_total = Column(Numeric(10, 2), nullable=False)
     estat_pagament = Column(Enum(EstatPagamentEnum), default=EstatPagamentEnum.PENDENT)

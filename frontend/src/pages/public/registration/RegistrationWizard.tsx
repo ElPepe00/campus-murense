@@ -31,8 +31,6 @@ const INITIAL_NEN: DadesNenForm = {
   clubProcedencia: 'C.D. Murense',
   alergies: '',
   malalties: '',
-  colegi: 'CEIP Joan Mas (Muro)',
-  curs: '4t Primària',
   tallaRoba: '8-10',
 };
 
@@ -47,10 +45,10 @@ const INITIAL_TUTOR: DadesTutorForm = {
 };
 
 const INITIAL_SERVEIS: ServeisForm = {
-  setmanes: [1],
-  menjador: false,
+  setmana: 1,
+  diesDinar: [],
+  intoleranciesDinar: '',
   intoleranciesMenjador: '',
-  matinera: false,
   descompte: 'cap',
   excursio1: false,
   excursio2: false,

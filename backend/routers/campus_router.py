@@ -2,6 +2,7 @@
 import json
 import logging
 import time
+import uuid
 from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
@@ -10,6 +11,7 @@ from typing import Optional, List
 from database import get_db
 import models
 from auth import get_current_user, require_admin
+from email_service import send_confirmation_email, send_bulk_admin_email
 
 log = logging.getLogger(__name__)
 
@@ -115,21 +117,34 @@ def get_inscrits(
             models.RegistreAssistencia.data == avui
         ).first()
 
+        dies_dinar_list = json.loads(inscripcio.dinar_dies) if inscripcio.dinar_dies else []
+        tutor = jugador.tutor
+
         llista.append({
             "id": jugador.id,
             "inscripcioId": inscripcio.id,
+            "editToken": inscripcio.edit_token,
             "nom": jugador.nom_complet,
             "edat": jugador.edat,
             "grup": inscripcio.grup_assignat or "Sense Grup",
             "dni": jugador.dni,
+            "setmana": inscripcio.setmana_seleccionada or 1,
+            "dinarDiesTotal": inscripcio.dinar_dies_total or len(dies_dinar_list),
+            "dinarDies": dies_dinar_list,
+            "excursio1": inscripcio.excursio_30_06,
+            "excursio2": inscripcio.excursio_07_07,
+            "preuTotal": float(inscripcio.preu_total) if inscripcio.preu_total is not None else 110.0,
             "pagat": inscripcio.estat_pagament == models.EstatPagamentEnum.PAGAT,
             "present": (registre.estat == models.EstatAssistenciaEnum.PRESENT) if registre else False,
-            "alergies": jugador.alergies
+            "alergies": jugador.alergies,
+            "tutorNom": tutor.nom_complet if tutor else "",
+            "tutorEmail": tutor.email if tutor else "",
+            "tutorTelefon": tutor.telefon_principal if tutor else ""
         })
 
     return llista
 
-# --- 3. Fitxa detallada de l'infant (Pantalla 4) ---
+# --- 3. Fitxa detallada de l'infant (Sense escola ni curs) ---
 @router.get("/inscrits/{jugador_id}")
 def get_fitxa_infant(
     jugador_id: int,
@@ -143,6 +158,7 @@ def get_fitxa_infant(
     tutor = jugador.tutor
     inscripcio = db.query(models.Inscripcio).filter(models.Inscripcio.jugador_id == jugador.id).first()
     autoritzats = db.query(models.PersonaAutoritzada).filter(models.PersonaAutoritzada.jugador_id == jugador.id).all()
+    dies_dinar_list = json.loads(inscripcio.dinar_dies) if (inscripcio and inscripcio.dinar_dies) else []
 
     return {
         "id": jugador.id,
@@ -153,8 +169,6 @@ def get_fitxa_infant(
         "poblacio": jugador.poblacio,
         "clubProcedencia": jugador.club_procedencia,
         "tallaRoba": jugador.talla_roba,
-        "colegi": "CEIP Joan Mas", # Per defecte a Muro
-        "curs": "4t Primària",
         "grup": inscripcio.grup_assignat if inscripcio else "Grup A",
         "alergies": jugador.alergies or "Cap al·lèrgia coneguda",
         "malalties": jugador.malalties or "Cap malaltia registrada",
@@ -173,12 +187,20 @@ def get_fitxa_infant(
             } for a in autoritzats
         ],
         "campus": {
-            "setmanes": inscripcio.setmanes_contractades if inscripcio else 4,
+            "setmana": inscripcio.setmana_seleccionada if inscripcio else 1,
+            "setmanes": inscripcio.setmanes_contractades if inscripcio else 1,
+            "diesDinar": dies_dinar_list,
+            "dinarDiesTotal": inscripcio.dinar_dies_total if inscripcio else 0,
+            "intoleranciesDinar": inscripcio.intolerancies_menjador if inscripcio else "",
+            "excursio1": inscripcio.excursio_30_06 if inscripcio else False,
+            "excursio2": inscripcio.excursio_07_07 if inscripcio else False,
             "piscina": inscripcio.servei_piscina.value if inscripcio else "SI",
-            "menjador": inscripcio.servei_menjador if inscripcio else False,
+            "menjador": (inscripcio.dinar_dies_total > 0 or inscripcio.servei_menjador) if inscripcio else False,
             "matinera": inscripcio.servei_matinera if inscripcio else False,
+            "descompte": inscripcio.descompte_aplicat.value if inscripcio else "CAP",
             "estatPagament": inscripcio.estat_pagament.value if inscripcio else "PENDENT",
-            "preuTotal": float(inscripcio.preu_total) if inscripcio else 150.00
+            "preuTotal": float(inscripcio.preu_total) if inscripcio else 110.00,
+            "editToken": inscripcio.edit_token if inscripcio else None
         }
     }
 
@@ -446,34 +468,61 @@ def crear_inscripcio_publica(dades: dict, request: Request, db: Session = Depend
                 )
                 db.add(persona)
 
-        # 6. Càlcul de preu oficial
-        setmanes = serveis_data.get("setmanes", [1])
-        if isinstance(setmanes, list):
-            valid_setmanes = [s for s in setmanes if isinstance(s, int) and 1 <= s <= 4]
-            num_setmanes = len(valid_setmanes) if valid_setmanes else 1
-        else:
-            num_setmanes = 1
+        # 6. Càlcul de preu oficial segons requeriments C.D. Murense 2027:
+        # - Exactament 1 setmana per inscripció (Preu base: 110 €)
+        raw_setmana = serveis_data.get("setmana") or serveis_data.get("setmana_seleccionada")
+        if not raw_setmana:
+            raw_setmanes_list = serveis_data.get("setmanes")
+            if isinstance(raw_setmanes_list, list) and raw_setmanes_list:
+                raw_setmana = raw_setmanes_list[0]
+            else:
+                raw_setmana = 1
+        try:
+            setmana_sel = int(raw_setmana)
+            if not (1 <= setmana_sel <= 4):
+                setmana_sel = 1
+        except Exception:
+            setmana_sel = 1
 
-        num_setmanes = max(1, min(num_setmanes, 4))
-        
-        preus_per_setmana = {1: 110.0, 2: 200.0, 3: 280.0, 4: 360.0}
-        base_preu = preus_per_setmana.get(num_setmanes, num_setmanes * 90.0)
+        preu_base_setmana = 110.0
 
+        # Descomptes NO acumulables (10% sobre la base de la setmana = 11 €)
         descompte_raw = str(serveis_data.get("descompte", "cap")).lower()
         if "murense" in descompte_raw:
             descompte_enum = models.TipusDescompteEnum.MURENSE
+            descompte_nom = "Jugador C.D. MURENSE (10%)"
             pct = 0.10
         elif "nombrosa" in descompte_raw or "familia" in descompte_raw:
             descompte_enum = models.TipusDescompteEnum.FAMILIA_NOMBROSA
+            descompte_nom = "Família Nombrosa (10%)"
             pct = 0.10
         else:
             descompte_enum = models.TipusDescompteEnum.CAP
+            descompte_nom = "Sense descompte"
             pct = 0.0
 
-        base_amb_descompte = base_preu * (1.0 - pct)
-        menjador_preu = (num_setmanes * 35.0) if serveis_data.get("menjador") else 0.0
-        matinera_preu = (num_setmanes * 15.0) if serveis_data.get("matinera") else 0.0
-        preu_total = round(base_amb_descompte + menjador_preu + matinera_preu, 2)
+        descompte_quantitat = round(preu_base_setmana * pct, 2)
+        base_amb_descompte = preu_base_setmana - descompte_quantitat
+
+        # Servei Dinar per dies seleccionats (8 €/dia)
+        raw_dies_dinar = serveis_data.get("diesDinar") or serveis_data.get("dinarDies") or []
+        if isinstance(raw_dies_dinar, list):
+            dies_dinar = [str(d).strip() for d in raw_dies_dinar if str(d).strip()]
+        elif serveis_data.get("menjador"):
+            dies_dinar = ["Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres"]
+        else:
+            dies_dinar = []
+
+        num_dies_dinar = len(dies_dinar)
+        dinar_cost = round(num_dies_dinar * 8.0, 2)
+
+        # Excursions (15 €/salida seleccionada)
+        excursio1 = bool(serveis_data.get("excursio1", False))
+        excursio2 = bool(serveis_data.get("excursio2", False))
+        excursions_cost = (15.0 if excursio1 else 0.0) + (15.0 if excursio2 else 0.0)
+
+        # Preu Total = (Preu Base Semana - Descuento Si Aplica) + (Días de Dinar * 8 €) + (Excursiones Seleccionadas * 15 €)
+        preu_total = round(base_amb_descompte + dinar_cost + excursions_cost, 2)
 
         # Servei piscina enum
         piscina_val = autoritzacions_data.get("piscina") or serveis_data.get("piscina", "SI")
@@ -484,23 +533,35 @@ def crear_inscripcio_publica(dades: dict, request: Request, db: Session = Depend
         else:
             piscina_enum = models.ServeiPiscinaEnum.SI
 
-        intolerancies_clean = str(serveis_data.get("intoleranciesMenjador") or nen_data.get("alergies") or "").strip()[:500]
+        intolerancies_clean = str(
+            serveis_data.get("intoleranciesDinar")
+            or serveis_data.get("intoleranciesMenjador")
+            or nen_data.get("alergies")
+            or ""
+        ).strip()[:500]
+
+        # Token únic UUIDv4 segur per a modificació d'inscripció
+        edit_token = str(uuid.uuid4())
 
         # 7. Crear Inscripció
         inscripcio = models.Inscripcio(
             jugador_id=jugador.id,
             edicio_id=edicio.id,
+            edit_token=edit_token,
             grup_assignat=grup_assignat,
             autoritzacio_imatges=bool(autoritzacions_data.get("imatges", True)),
             autoritzacio_sortir_sol=bool(autoritzacions_data.get("sortirSol", False)),
             autoritzacio_sortides=bool(autoritzacions_data.get("sortides", True)),
             servei_piscina=piscina_enum,
-            servei_menjador=bool(serveis_data.get("menjador", False)),
+            servei_menjador=(num_dies_dinar > 0),
+            dinar_dies=json.dumps(dies_dinar, ensure_ascii=False),
+            dinar_dies_total=num_dies_dinar,
             intolerancies_menjador=intolerancies_clean or None,
             servei_matinera=bool(serveis_data.get("matinera", False)),
-            excursio_30_06=bool(serveis_data.get("excursio1", False)),
-            excursio_07_07=bool(serveis_data.get("excursio2", False)),
-            setmanes_contractades=num_setmanes,
+            excursio_30_06=excursio1,
+            excursio_07_07=excursio2,
+            setmana_seleccionada=setmana_sel,
+            setmanes_contractades=1,
             descompte_aplicat=descompte_enum,
             preu_total=preu_total,
             estat_pagament=models.EstatPagamentEnum.PENDENT
@@ -522,23 +583,400 @@ def crear_inscripcio_publica(dades: dict, request: Request, db: Session = Depend
         db.add(registre_inicial)
         db.commit()
 
+        # 9. Disparar automàticament correu de confirmació al tutor amb desglossament i enllaç de modificació
+        try:
+            client_origin = request.headers.get("origin") or request.headers.get("referer")
+            send_confirmation_email(
+                to_email=tutor.email,
+                tutor_nom=tutor.nom_complet,
+                jugador_nom=jugador.nom_complet,
+                dni_jugador=jugador.dni,
+                setmana_num=setmana_sel,
+                dinar_dies=dies_dinar,
+                intolerancies=intolerancies_clean,
+                excursio1=excursio1,
+                excursio2=excursio2,
+                descompte_nom=descompte_nom,
+                preu_base=preu_base_setmana,
+                descompte_quantitat=descompte_quantitat,
+                dinar_cost=dinar_cost,
+                excursions_cost=excursions_cost,
+                preu_total=preu_total,
+                edit_token=edit_token,
+                talla_roba=talla_clean,
+                base_url=client_origin
+            )
+        except Exception as mail_err:
+            log.warning(f"No s'ha pogut enviar el correu de confirmació: {mail_err}")
+
         return {
             "status": "ok",
             "inscripcioId": inscripcio.id,
+            "editToken": edit_token,
             "jugadorId": jugador.id,
             "nom": jugador.nom_complet,
             "grup": grup_assignat,
             "preuTotal": preu_total,
-            "message": "Inscripció guardada satisfactòriament"
+            "dinarDiesTotal": num_dies_dinar,
+            "message": "Inscripció guardada satisfactòriament i correu de confirmació enviat"
         }
     except Exception as e:
         db.rollback()
-        # Per seguretat (CWE-209), mai retornam excepcions internes ni detalls de BD al client
         log.error(f"Error registrant la inscripció: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="S'ha produït un error en processar la inscripció. Revisa les dades o contacta amb la coordinació."
         )
+
+
+# --- 6.1 Modificació d'Inscripció per l'Usuari (amb Token segur i Data Límit 10/06/2027) ---
+DATA_LIMIT_MODIFICACIO = date(2027, 6, 10)
+
+@router.get("/inscripcions/modificar/{token}")
+def obtenir_inscripcio_per_modificar(token: str, db: Session = Depends(get_db)):
+    """
+    Retorna les dades d'una inscripció existent identificada pel seu edit_token.
+    Comprova que la data actual no superi la data límit (10/06/2027).
+    """
+    clean_token = token.strip()
+    inscripcio = db.query(models.Inscripcio).filter(models.Inscripcio.edit_token == clean_token).first()
+    if not inscripcio:
+        raise HTTPException(
+            status_code=404,
+            detail="No s'ha trobat cap inscripció amb aquest enllaç d'edició. Si us plau, comprova el correu rebut."
+        )
+
+    avui = date.today()
+    modificacio_permesa = (avui <= DATA_LIMIT_MODIFICACIO)
+
+    jugador = inscripcio.jugador
+    tutor = jugador.tutor
+    autoritzats = db.query(models.PersonaAutoritzada).filter(models.PersonaAutoritzada.jugador_id == jugador.id).all()
+    dies_dinar_list = json.loads(inscripcio.dinar_dies) if inscripcio.dinar_dies else []
+
+    return {
+        "status": "ok",
+        "modificacioPermesa": modificacio_permesa,
+        "dataLimit": "10/06/2027",
+        "motiuBloqueig": None if modificacio_permesa else "El termini per a modificar la inscripció va finalitzar el 10/06/2027.",
+        "inscripcio": {
+            "id": inscripcio.id,
+            "editToken": inscripcio.edit_token,
+            "estatPagament": inscripcio.estat_pagament.value,
+            "preuTotal": float(inscripcio.preu_total) if inscripcio.preu_total is not None else 110.0,
+            "setmana": inscripcio.setmana_seleccionada or 1,
+            "diesDinar": dies_dinar_list,
+            "dinarDiesTotal": inscripcio.dinar_dies_total or len(dies_dinar_list),
+            "intoleranciesDinar": inscripcio.intolerancies_menjador or "",
+            "excursio1": bool(inscripcio.excursio_30_06),
+            "excursio2": bool(inscripcio.excursio_07_07),
+            "descompte": (
+                "murense" if inscripcio.descompte_aplicat == models.TipusDescompteEnum.MURENSE
+                else "nombrosa" if inscripcio.descompte_aplicat == models.TipusDescompteEnum.FAMILIA_NOMBROSA
+                else "cap"
+            ),
+            "autoritzacions": {
+                "imatges": bool(inscripcio.autoritzacio_imatges),
+                "sortirSol": bool(inscripcio.autoritzacio_sortir_sol),
+                "sortides": bool(inscripcio.autoritzacio_sortides),
+                "piscina": inscripcio.servei_piscina.value if inscripcio.servei_piscina else "SI"
+            }
+        },
+        "nen": {
+            "id": jugador.id,
+            "nom": jugador.nom_complet,
+            "dni": jugador.dni,
+            "dataNaixement": jugador.data_naixement.strftime("%Y-%m-%d") if jugador.data_naixement else "",
+            "edat": jugador.edat,
+            "poblacio": jugador.poblacio,
+            "clubProcedencia": jugador.club_procedencia,
+            "tallaRoba": jugador.talla_roba,
+            "alergies": jugador.alergies or "",
+            "malalties": jugador.malalties or ""
+        },
+        "tutor": {
+            "id": tutor.id if tutor else None,
+            "nomComplet": tutor.nom_complet if tutor else "",
+            "email": tutor.email if tutor else "",
+            "telefonPrincipal": tutor.telefon_principal if tutor else "",
+            "telefonSecundari": tutor.telefon_secundari or ""
+        },
+        "autoritzats": [
+            {
+                "id": a.id,
+                "nomComplet": a.nom_complet,
+                "dni": a.dni,
+                "parentiu": a.parentiu or ""
+            } for a in autoritzats
+        ]
+    }
+
+
+@router.put("/inscripcions/{token}")
+def modificar_inscripcio(token: str, dades: dict, request: Request, db: Session = Depends(get_db)):
+    """
+    Modifica la inscripció associada al token UUIDv4.
+    Aplica restricció de data límit (10/06/2027) i recalcula estrictament el preu total.
+    """
+    clean_token = token.strip()
+    inscripcio = db.query(models.Inscripcio).filter(models.Inscripcio.edit_token == clean_token).first()
+    if not inscripcio:
+        raise HTTPException(status_code=404, detail="Inscripció no trobada")
+
+    avui = date.today()
+    if avui > DATA_LIMIT_MODIFICACIO:
+        raise HTTPException(
+            status_code=403,
+            detail="El termini per a modificar la inscripció va finalitzar el 10/06/2027. Per a qualsevol canvi extraordinari, contacta amb la coordinació a campuscdmurense@gmail.com."
+        )
+
+    try:
+        jugador = inscripcio.jugador
+        tutor = jugador.tutor
+
+        # 1. Actualitzar dades del jugador (talla, al·lèrgies, malalties)
+        nen_data = dades.get("nen", {})
+        if isinstance(nen_data, dict):
+            if "tallaRoba" in nen_data:
+                jugador.talla_roba = str(nen_data["tallaRoba"]).strip()[:10]
+            if "alergies" in nen_data:
+                jugador.alergies = str(nen_data["alergies"]).strip()[:1000]
+            if "malalties" in nen_data:
+                jugador.malalties = str(nen_data["malalties"]).strip()[:1000]
+
+        # 2. Actualitzar telèfons del tutor
+        tutor_data = dades.get("tutor", {})
+        if isinstance(tutor_data, dict) and tutor:
+            if "telefonPrincipal" in tutor_data:
+                jugador.tutor.telefon_principal = str(tutor_data["telefonPrincipal"]).strip()[:20]
+            if "telefonSecundari" in tutor_data:
+                jugador.tutor.telefon_secundari = str(tutor_data["telefonSecundari"]).strip()[:20] if tutor_data["telefonSecundari"] else None
+
+        # 3. Actualitzar persones autoritzades si s'envien
+        if "autoritzats" in dades and isinstance(dades["autoritzats"], list):
+            db.query(models.PersonaAutoritzada).filter(models.PersonaAutoritzada.jugador_id == jugador.id).delete()
+            for a in dades["autoritzats"][:10]:
+                if isinstance(a, dict) and a.get("nomComplet"):
+                    db.add(models.PersonaAutoritzada(
+                        jugador_id=jugador.id,
+                        nom_complet=str(a.get("nomComplet")).strip()[:120],
+                        dni=str(a.get("dni", "N/A")).strip()[:20],
+                        parentiu=str(a.get("parentiu", "Familiar")).strip()[:50]
+                    ))
+
+        # 4. Actualitzar Serveis, Dinar i Excursions
+        serveis_data = dades.get("serveis", {})
+        if isinstance(serveis_data, dict):
+            # Setmana contractada (exactament 1)
+            raw_s = serveis_data.get("setmana") or serveis_data.get("setmana_seleccionada")
+            if raw_s:
+                try:
+                    s_int = int(raw_s)
+                    if 1 <= s_int <= 4:
+                        inscripcio.setmana_seleccionada = s_int
+                except Exception:
+                    pass
+
+            # Dies de Dinar (8 €/dia)
+            if "diesDinar" in serveis_data or "dinarDies" in serveis_data:
+                raw_d = serveis_data.get("diesDinar") or serveis_data.get("dinarDies") or []
+                dies_list = [str(x).strip() for x in raw_d if str(x).strip()]
+                inscripcio.dinar_dies = json.dumps(dies_list, ensure_ascii=False)
+                inscripcio.dinar_dies_total = len(dies_list)
+                inscripcio.servei_menjador = (len(dies_list) > 0)
+
+            # Intoleràncies
+            if "intoleranciesDinar" in serveis_data:
+                inscripcio.intolerancies_menjador = str(serveis_data["intoleranciesDinar"]).strip()[:500] or None
+            elif "intoleranciesMenjador" in serveis_data:
+                inscripcio.intolerancies_menjador = str(serveis_data["intoleranciesMenjador"]).strip()[:500] or None
+
+            # Excursions (15 € cadascuna)
+            if "excursio1" in serveis_data:
+                inscripcio.excursio_30_06 = bool(serveis_data["excursio1"])
+            if "excursio2" in serveis_data:
+                inscripcio.excursio_07_07 = bool(serveis_data["excursio2"])
+
+            # Descompte (10% no acumulable)
+            if "descompte" in serveis_data:
+                descompte_raw = str(serveis_data["descompte"]).lower()
+                if "murense" in descompte_raw:
+                    inscripcio.descompte_aplicat = models.TipusDescompteEnum.MURENSE
+                elif "nombrosa" in descompte_raw or "familia" in descompte_raw:
+                    inscripcio.descompte_aplicat = models.TipusDescompteEnum.FAMILIA_NOMBROSA
+                else:
+                    inscripcio.descompte_aplicat = models.TipusDescompteEnum.CAP
+
+        # 5. Actualitzar Autoritzacions
+        autoritzacions_data = dades.get("autoritzacions", {})
+        if isinstance(autoritzacions_data, dict):
+            if "imatges" in autoritzacions_data:
+                inscripcio.autoritzacio_imatges = bool(autoritzacions_data["imatges"])
+            if "sortirSol" in autoritzacions_data:
+                inscripcio.autoritzacio_sortir_sol = bool(autoritzacions_data["sortirSol"])
+            if "sortides" in autoritzacions_data:
+                inscripcio.autoritzacio_sortides = bool(autoritzacions_data["sortides"])
+            if "piscina" in autoritzacions_data:
+                pval = str(autoritzacions_data["piscina"]).upper()
+                if pval == "SI_MANIGUETS":
+                    inscripcio.servei_piscina = models.ServeiPiscinaEnum.SI_MANIGUETS
+                elif pval == "NO":
+                    inscripcio.servei_piscina = models.ServeiPiscinaEnum.NO
+                else:
+                    inscripcio.servei_piscina = models.ServeiPiscinaEnum.SI
+
+        # 6. Recàlcul estricte del total:
+        # Preu Total = (Preu Base Semana - Descuento Si Aplica) + (Días de Dinar * 8 €) + (Excursiones Seleccionadas * 15 €)
+        preu_base = 110.0
+        pct = 0.10 if inscripcio.descompte_aplicat != models.TipusDescompteEnum.CAP else 0.0
+        descompte_amount = round(preu_base * pct, 2)
+        base_amb_desc = preu_base - descompte_amount
+
+        num_dies_dinar = inscripcio.dinar_dies_total or 0
+        dinar_cost = round(num_dies_dinar * 8.0, 2)
+        exc_cost = (15.0 if inscripcio.excursio_30_06 else 0.0) + (15.0 if inscripcio.excursio_07_07 else 0.0)
+
+        nou_preu_total = round(base_amb_desc + dinar_cost + exc_cost, 2)
+        inscripcio.preu_total = nou_preu_total
+
+        db.commit()
+        db.refresh(inscripcio)
+
+        return {
+            "status": "ok",
+            "message": "Inscripció actualitzada correctament",
+            "preuTotal": nou_preu_total,
+            "setmana": inscripcio.setmana_seleccionada,
+            "dinarDiesTotal": num_dies_dinar
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        log.error(f"Error modificant inscripció: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Error en desar les modificacions de la inscripció")
+
+
+# --- 6.2 Panel Admin - Mensajería Directa y Bulk Email ---
+@router.post("/admin/emails/bulk")
+def enviar_correus_massius(
+    dades: dict,
+    db: Session = Depends(get_db),
+    admin_user: models.Usuari = Depends(require_admin)
+):
+    """
+    Envia comunicats massius per email a tots o a un subconjunt filtrat de tutors inscrits.
+    Requereix rol ADMIN.
+    """
+    subject = str(dades.get("subject", "")).strip()[:200]
+    body = str(dades.get("body", "")).strip()[:10000]
+    filter_grup = dades.get("filter_grup")
+    filter_setmana = dades.get("filter_setmana")
+    filter_estat_pagament = dades.get("filter_estat_pagament")
+
+    if not subject or not body:
+        raise HTTPException(status_code=400, detail="L'assumpte i el cos del missatge són camps obligatoris")
+
+    query = db.query(models.Tutor, models.Jugador, models.Inscripcio).join(
+        models.Jugador, models.Tutor.id == models.Jugador.tutor_id
+    ).join(
+        models.Inscripcio, models.Jugador.id == models.Inscripcio.jugador_id
+    )
+
+    if filter_grup and filter_grup != "Tots":
+        query = query.filter(models.Inscripcio.grup_assignat == filter_grup)
+
+    if filter_setmana and int(filter_setmana) in (1, 2, 3, 4):
+        query = query.filter(models.Inscripcio.setmana_seleccionada == int(filter_setmana))
+
+    if filter_estat_pagament:
+        if filter_estat_pagament == "PAGAT":
+            query = query.filter(models.Inscripcio.estat_pagament == models.EstatPagamentEnum.PAGAT)
+        elif filter_estat_pagament == "PENDENT":
+            query = query.filter(models.Inscripcio.estat_pagament != models.EstatPagamentEnum.PAGAT)
+
+    resultats = query.all()
+
+    destinataris = []
+    emails_vistos = set()
+    for tutor, jugador, inscripcio in resultats:
+        if tutor.email and tutor.email.lower() not in emails_vistos:
+            emails_vistos.add(tutor.email.lower())
+            destinataris.append({
+                "email": tutor.email,
+                "nom_tutor": tutor.nom_complet,
+                "nom_jugador": jugador.nom_complet
+            })
+
+    if not destinataris:
+        return {
+            "status": "ok",
+            "message": "No s'ha trobat cap tutor que compleixi els filtres especificats.",
+            "total": 0,
+            "sent": 0,
+            "failed": 0
+        }
+
+    res = send_bulk_admin_email(destinataris, subject, body)
+    return res
+
+
+@router.post("/admin/inscripcions/{inscripcio_id}/reenviar-email")
+def reenviar_email_confirmacio(
+    inscripcio_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    admin_user: models.Usuari = Depends(require_admin)
+):
+    """Reenvia el correu de confirmació oficial amb el token d'edició al tutor."""
+    inscripcio = db.query(models.Inscripcio).filter(models.Inscripcio.id == inscripcio_id).first()
+    if not inscripcio:
+        raise HTTPException(status_code=404, detail="Inscripció no trobada")
+
+    jugador = inscripcio.jugador
+    tutor = jugador.tutor
+    if not tutor or not tutor.email:
+        raise HTTPException(status_code=400, detail="El tutor no té una adreça de correu vàlida")
+
+    if not inscripcio.edit_token:
+        inscripcio.edit_token = str(uuid.uuid4())
+        db.commit()
+
+    dies_dinar = json.loads(inscripcio.dinar_dies) if inscripcio.dinar_dies else []
+    descompte_nom = (
+        "Jugador C.D. MURENSE (10%)" if inscripcio.descompte_aplicat == models.TipusDescompteEnum.MURENSE
+        else "Família Nombrosa (10%)" if inscripcio.descompte_aplicat == models.TipusDescompteEnum.FAMILIA_NOMBROSA
+        else "Sense descompte"
+    )
+    pct = 0.10 if inscripcio.descompte_aplicat != models.TipusDescompteEnum.CAP else 0.0
+    preu_base = 110.0
+    descompte_quantitat = round(preu_base * pct, 2)
+    dinar_cost = round(len(dies_dinar) * 8.0, 2)
+    exc_cost = (15.0 if inscripcio.excursio_30_06 else 0.0) + (15.0 if inscripcio.excursio_07_07 else 0.0)
+
+    client_origin = request.headers.get("origin") or request.headers.get("referer")
+    ok = send_confirmation_email(
+        to_email=tutor.email,
+        tutor_nom=tutor.nom_complet,
+        jugador_nom=jugador.nom_complet,
+        dni_jugador=jugador.dni,
+        setmana_num=inscripcio.setmana_seleccionada or 1,
+        dinar_dies=dies_dinar,
+        intolerancies=inscripcio.intolerancies_menjador,
+        excursio1=bool(inscripcio.excursio_30_06),
+        excursio2=bool(inscripcio.excursio_07_07),
+        descompte_nom=descompte_nom,
+        preu_base=preu_base,
+        descompte_quantitat=descompte_quantitat,
+        dinar_cost=dinar_cost,
+        excursions_cost=exc_cost,
+        preu_total=float(inscripcio.preu_total),
+        edit_token=inscripcio.edit_token,
+        talla_roba=jugador.talla_roba,
+        base_url=client_origin
+    )
+
+    return {"status": "ok", "message": f"Correu reenviat satisfactòriament a {tutor.email}", "sent": ok}
 
 
 # --- 7. Recepció de Missatges de Contacte Púbics ---
@@ -658,8 +1096,13 @@ def get_export_complet(
             "tutorTelefonSecundari": tutor.telefon_secundari or "",
             "personesAutoritzades": persones_autoritzades_str,
             "grup": inscripcio.grup_assignat or "Sense grup",
-            "setmanesContractades": inscripcio.setmanes_contractades,
-            "menjador": "SÍ" if inscripcio.servei_menjador else "NO",
+            "setmana": inscripcio.setmana_seleccionada or 1,
+            "setmanesContractades": 1,
+            "dinarDiesTotal": inscripcio.dinar_dies_total or 0,
+            "dinarDies": inscripcio.dinar_dies or "[]",
+            "dinar": "SÍ" if (inscripcio.dinar_dies_total and inscripcio.dinar_dies_total > 0) else "NO",
+            "intoleranciesDinar": inscripcio.intolerancies_menjador or "Cap",
+            "menjador": "SÍ" if (inscripcio.dinar_dies_total and inscripcio.dinar_dies_total > 0) else "NO",
             "intoleranciesMenjador": inscripcio.intolerancies_menjador or "Cap",
             "matinera": "SÍ" if inscripcio.servei_matinera else "NO",
             "piscina": inscripcio.servei_piscina.value if inscripcio.servei_piscina else "NO",

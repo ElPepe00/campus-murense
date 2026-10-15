@@ -18,6 +18,8 @@ import { PaymentsPage } from './pages/admin/PaymentsPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { NoticiesManagementPage } from './pages/admin/NoticiesManagementPage';
+import { AdminMessagingPage } from './pages/admin/AdminMessagingPage';
+import { ModifyRegistrationPage } from './pages/public/ModifyRegistrationPage';
 import { LegalPage } from './pages/public/LegalPage';
 import { PrivacyPage } from './pages/public/PrivacyPage';
 import { CookiesPage } from './pages/public/CookiesPage';
@@ -35,6 +37,9 @@ function getTabFromPath(path: string): PageTabKey {
   }
   if (cleanPath === '/inscripcio' || cleanPath.startsWith('/inscripcio/')) {
     return 'inscripcio';
+  }
+  if (cleanPath === '/modificar-inscripcio' || cleanPath.startsWith('/modificar-inscripcio/')) {
+    return 'modificar-inscripcio';
   }
   if (cleanPath === '/noticies' || cleanPath.startsWith('/noticies/')) {
     return 'noticies';
@@ -58,6 +63,7 @@ function getTabFromPath(path: string): PageTabKey {
   if (cleanPath === '/admin/assistencia') return 'admin-assistencia';
   if (cleanPath === '/admin/pagaments') return 'admin-pagos';
   if (cleanPath === '/admin/informes') return 'admin-informes';
+  if (cleanPath === '/admin/missatgeria') return 'admin-missatgeria';
   if (cleanPath === '/admin/configuracio') return 'admin-configuracio';
   if (cleanPath === '/admin/gestio-noticies') return 'admin-noticies';
 
@@ -133,6 +139,8 @@ function MainAppContent() {
       }
     } else if (currentPath === '/inscripcio' || activeTab === 'inscripcio') {
       document.title = "Campus C.D. Murense • Formulari d'Inscripció 2027";
+    } else if (currentPath.startsWith('/modificar-inscripcio') || activeTab === 'modificar-inscripcio') {
+      document.title = "Campus C.D. Murense • Modificar Inscripció";
     } else if (currentPath === '/noticies' || activeTab === 'noticies') {
       document.title = "Campus C.D. Murense • Notícies i Novetats";
     } else if (currentPath === '/contacte' || activeTab === 'contacte') {
@@ -168,6 +176,7 @@ function MainAppContent() {
       else if (tab === 'admin-assistencia') navigateTo('/admin/assistencia');
       else if (tab === 'admin-pagos') navigateTo('/admin/pagaments');
       else if (tab === 'admin-informes') navigateTo('/admin/informes');
+      else if (tab === 'admin-missatgeria') navigateTo('/admin/missatgeria');
       else if (tab === 'admin-configuracio') navigateTo('/admin/configuracio');
       else if (tab === 'admin-noticies') navigateTo('/admin/gestio-noticies');
       return;
@@ -175,6 +184,7 @@ function MainAppContent() {
 
     // Rutes de navegació de la web pública per a famílies
     if (tab === 'inscripcio') navigateTo('/inscripcio');
+    else if (tab === 'modificar-inscripcio') navigateTo('/modificar-inscripcio');
     else if (tab === 'noticies') navigateTo('/noticies');
     else if (tab === 'contacte') navigateTo('/contacte');
     else if (tab === 'avis-legal') navigateTo('/avis-legal');
@@ -245,6 +255,7 @@ function MainAppContent() {
             {activeTab === 'admin-assistencia' && <AttendancePage />}
             {activeTab === 'admin-pagos' && <PaymentsPage />}
             {activeTab === 'admin-informes' && <ReportsPage />}
+            {activeTab === 'admin-missatgeria' && <AdminMessagingPage />}
             {activeTab === 'admin-configuracio' && <SettingsPage />}
             {activeTab === 'admin-noticies' && <NoticiesManagementPage />}
             {activeTab === 'inscripcio' && (
@@ -318,6 +329,10 @@ function MainAppContent() {
           />
         )}
 
+        {activeTab === 'modificar-inscripcio' && (
+          <ModifyRegistrationPage onNavigateHome={() => navigateTo('/')} />
+        )}
+
         {activeTab === 'noticies' && <NewsPage onNavigate={navigateTo} />}
         {activeTab === 'contacte' && <ContactPage onNavigate={navigateTo} />}
         {activeTab === 'avis-legal' && <LegalPage onNavigate={navigateTo} />}
@@ -347,18 +362,6 @@ function MainAppContent() {
               }}
             >
               Inici
-            </a>
-            <a
-              href="/noticies"
-              className="footer-nav-link"
-              onClick={(e) => {
-                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
-                  e.preventDefault();
-                  navigateTo('/noticies');
-                }
-              }}
-            >
-              Notícies
             </a>
             <a
               href="/contacte"

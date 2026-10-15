@@ -3,17 +3,20 @@ import React, { useState } from 'react';
 import { 
   ArrowLeft, 
   CheckCircle2, 
-  ShieldCheck, 
   User, 
   Users, 
   Calendar, 
-  FileText, 
-  AlertTriangle 
+  FileText,
+  AlertCircle
 } from 'lucide-react';
 import type { InscripcioState } from '../../../types/inscripcio';
 import { submitInscripcio } from '../../../api/campusApi';
 import { trackEvent } from '../../../utils/analytics';
-import { getStoredCampusConfig } from '../../../utils/campusConfig';
+import { 
+  getStoredCampusConfig, 
+  CAMPUS_SETMANES_DEF, 
+  calculateRegistrationPrice 
+} from '../../../utils/campusConfig';
 
 interface Step5SummaryDataProps {
   formData: InscripcioState;
@@ -27,45 +30,34 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
   onConfirm,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const config = getStoredCampusConfig();
 
-  // Càlculs econòmics dinàmics basats en la configuració del club
-  const preusCampus: { [key: number]: number } = {
-    1: config.tarifes.preu1Setmana,
-    2: config.tarifes.preu2Setmanes,
-    3: config.tarifes.preu3Setmanes,
-    4: config.tarifes.preu4Setmanes,
-  };
+  const weekNum = formData.serveis.setmana || (formData.serveis.setmanes && formData.serveis.setmanes[0]) || 1;
+  const weekConfig = CAMPUS_SETMANES_DEF.find((s) => s.num === weekNum) || CAMPUS_SETMANES_DEF[0];
 
-  const countWeeks = formData.serveis.setmanes.length;
-  const basePrice = preusCampus[countWeeks] || (countWeeks > 0 ? countWeeks * config.tarifes.preu1Setmana : 0);
-
-  const discountRate = formData.serveis.descompte === 'murense' 
-    ? (config.tarifes.descompteSociPercent / 100) 
-    : formData.serveis.descompte === 'nombrosa' 
-    ? (config.tarifes.descompteGermansPercent / 100) 
-    : 0;
-
-  const discountAmount = Math.round(basePrice * discountRate);
-  const baseAfterDiscount = basePrice - discountAmount;
-
-  const menjadorPrice = formData.serveis.menjador ? countWeeks * config.tarifes.preuMenjadorSetmana : 0;
-  const matineraPrice = formData.serveis.matinera ? countWeeks * config.tarifes.preuMatineraSetmana : 0;
-  const totalPrice = baseAfterDiscount + menjadorPrice + matineraPrice;
+  const pricing = calculateRegistrationPrice(
+    weekNum,
+    formData.serveis.diesDinar || [],
+    formData.serveis.excursio1,
+    formData.serveis.excursio2,
+    formData.serveis.descompte
+  );
 
   const handleFinalSubmit = async () => {
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       await submitInscripcio(formData);
       trackEvent('registration_complete', {
-        setmanes: countWeeks,
-        total: totalPrice,
-        descompte: formData.serveis.descompte
+        setmana: weekNum,
+        total: pricing.totalPrice,
+        descompte: formData.serveis.descompte,
       });
       onConfirm();
-    } catch (err) {
+    } catch (err: unknown) {
       console.warn('Avís de connexió amb backend, completant registre per a la demo:', err);
-      trackEvent('registration_fallback_demo', { total: totalPrice });
+      trackEvent('registration_fallback_demo', { total: pricing.totalPrice });
       onConfirm();
     } finally {
       setIsSubmitting(false);
@@ -77,11 +69,18 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
       <div className="step-card-header">
         <h2 className="step-card-title">Resum de la Inscripció i Informació de Pagament</h2>
         <p className="step-card-subtitle">
-          Revisa el resum complet de la sol·licitud oficial del Campus C.D. Murense 2027 abans d'enviar.
+          Revisa el resum complet de la sol·licitud oficial del Campus C.D. Murense 2027 abans de confirmar l'enviament.
         </p>
       </div>
 
-      {/* 1. Dades de l'infant */}
+      {submitError && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '12px 16px', borderRadius: '8px', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px' }}>
+          <AlertCircle size={18} />
+          <span>{submitError}</span>
+        </div>
+      )}
+
+      {/* 1. Dades de l'infant (sense escola ni curs) */}
       <div className="summary-box">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: 'var(--primary)' }}>
           <User size={18} />
@@ -109,16 +108,12 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
           <span className="summary-val">{formData.nen.poblacio} • {formData.nen.clubProcedencia}</span>
         </div>
         <div className="summary-row">
-          <span className="summary-label">Col·legi i Curs:</span>
-          <span className="summary-val">{formData.nen.colegi} • {formData.nen.curs}</span>
-        </div>
-        <div className="summary-row">
-          <span className="summary-label">Talla de Camiseta (Roba):</span>
+          <span className="summary-label">Talla de Camiseta (Roba oficial):</span>
           <span className="summary-val">Talla {formData.nen.tallaRoba}</span>
         </div>
         {formData.nen.alergies && (
           <div className="summary-row">
-            <span className="summary-label">Al·lèrgies:</span>
+            <span className="summary-label">Al·lèrgies generals:</span>
             <span className="summary-val" style={{ color: '#d97706' }}>{formData.nen.alergies}</span>
           </div>
         )}
@@ -134,13 +129,9 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
       <div className="summary-box">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: 'var(--primary)' }}>
           <Users size={18} />
-          <h3 style={{ fontSize: '15px', fontWeight: 800, margin: 0 }}>Representants Legals i Contacte</h3>
+          <h3 style={{ fontSize: '15px', fontWeight: 800, margin: 0 }}>2. Representants Legals i Contacte</h3>
         </div>
 
-        <div className="summary-row">
-          <span className="summary-label">Qui emplena el formulari:</span>
-          <span className="summary-val">{formData.tutor.nomEmplenaFormulari}</span>
-        </div>
         <div className="summary-row">
           <span className="summary-label">Representant Legal:</span>
           <span className="summary-val">{formData.tutor.nomComplet} ({formData.tutor.parentiu || 'Tutor'})</span>
@@ -152,8 +143,8 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
           </div>
         )}
         <div className="summary-row">
-          <span className="summary-label">Adreça electrònica:</span>
-          <span className="summary-val">{formData.tutor.email}</span>
+          <span className="summary-label">Adreça electrònica (per a confirmació):</span>
+          <span className="summary-val" style={{ fontWeight: 700, color: 'var(--primary)' }}>{formData.tutor.email}</span>
         </div>
         <div className="summary-row">
           <span className="summary-label">Telèfons de contacte:</span>
@@ -172,42 +163,58 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
         )}
       </div>
 
-      {/* 3. Serveis, Excursions i Autoritzacions */}
+      {/* 3. Serveis, Dinar, Excursions i Autoritzacions */}
       <div className="summary-box">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: 'var(--primary)' }}>
           <Calendar size={18} />
-          <h3 style={{ fontSize: '15px', fontWeight: 800, margin: 0 }}>Serveis i Autoritzacions</h3>
+          <h3 style={{ fontSize: '15px', fontWeight: 800, margin: 0 }}>3. Setmana, Serveis i Autoritzacions</h3>
         </div>
 
         <div className="summary-row">
-          <span className="summary-label">Setmanes de Campus ({countWeeks}):</span>
-          <span className="summary-val">Setmanes {formData.serveis.setmanes.join(', ')} ({basePrice} €)</span>
+          <span className="summary-label">Setmana triada:</span>
+          <span className="summary-val" style={{ fontWeight: 700 }}>
+            {weekConfig.nom}: {weekConfig.dates} (110,00 €)
+          </span>
         </div>
-        {discountRate > 0 && (
+
+        {pricing.discountAmount > 0 && (
           <div className="summary-row">
             <span className="summary-label">Descompte aplicat (10%):</span>
-            <span className="summary-val" style={{ color: 'var(--success)' }}>
-              {formData.serveis.descompte === 'murense' ? 'Jugador C.D. Murense (-10%)' : 'Família Nombrosa (-10%)'} : -{discountAmount} €
+            <span className="summary-val" style={{ color: '#16a34a', fontWeight: 700 }}>
+              {formData.serveis.descompte === 'murense' ? 'Jugador C.D. MURENSE (-10%)' : 'Família Nombrosa (-10%)'}: -{pricing.discountAmount},00 €
             </span>
           </div>
         )}
+
         <div className="summary-row">
-          <span className="summary-label">Servei Extra Menjador (14h-15h):</span>
+          <span className="summary-label">Servei de Dinar (8 €/dia):</span>
           <span className="summary-val">
-            {formData.serveis.menjador ? `Sí (+${menjadorPrice} €)` : 'No'}
-            {formData.serveis.intoleranciesMenjador && ` (Intoleràncies: ${formData.serveis.intoleranciesMenjador})`}
+            {formData.serveis.diesDinar && formData.serveis.diesDinar.length > 0 ? (
+              <span style={{ color: '#0f172a', fontWeight: 600 }}>
+                {formData.serveis.diesDinar.length} dies seleccionats (+{pricing.dinarCost},00 €)
+              </span>
+            ) : (
+              'Sense servei de dinar (0,00 €)'
+            )}
           </span>
         </div>
+
+        {(formData.serveis.intoleranciesDinar || formData.serveis.intoleranciesMenjador) && (
+          <div className="summary-row">
+            <span className="summary-label">Intoleràncies Dinar:</span>
+            <span className="summary-val" style={{ color: '#d97706' }}>
+              {formData.serveis.intoleranciesDinar || formData.serveis.intoleranciesMenjador}
+            </span>
+          </div>
+        )}
+
         <div className="summary-row">
-          <span className="summary-label">Servei Matinera (des de 08:00h):</span>
-          <span className="summary-val">{formData.serveis.matinera ? `Sí (+${matineraPrice} €)` : 'No'}</span>
-        </div>
-        <div className="summary-row">
-          <span className="summary-label">Sortides i Excursions:</span>
+          <span className="summary-label">Sortides i Excursions (+15 €/u):</span>
           <span className="summary-val">
-            30/06: {formData.serveis.excursio1 ? 'SÍ' : 'NO'} • 07/07: {formData.serveis.excursio2 ? 'SÍ' : 'NO'}
+            Excursió 30/06: {formData.serveis.excursio1 ? 'SÍ (+15 €)' : 'NO'} • Excursió 07/07: {formData.serveis.excursio2 ? 'SÍ (+15 €)' : 'NO'}
           </span>
         </div>
+
         <div className="summary-row">
           <span className="summary-label">Piscina Municipal:</span>
           <span className="summary-val">
@@ -222,10 +229,6 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
           <span className="summary-label">Sortir sol del campus per anar a casa:</span>
           <span className="summary-val">{formData.autoritzacions.sortirSol ? 'SÍ' : 'NO'}</span>
         </div>
-        <div className="summary-row">
-          <span className="summary-label">Participació a sortides del Club:</span>
-          <span className="summary-val">{formData.autoritzacions.sortides ? 'SÍ' : 'NO'}</span>
-        </div>
       </div>
 
       {/* Banner de total a pagar */}
@@ -233,72 +236,34 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
         <div>
           <span className="summary-total-title">Total Final de la Inscripció</span>
           <div style={{ fontSize: '13px', opacity: 0.85, marginTop: '2px' }}>
-            Data límit per a fer la inscripció i pagament: <strong>{config.banc.dataLimit}</strong>
+            Data límit de pagament i modificació: <strong>{config.banc.dataLimit}</strong>
           </div>
         </div>
-        <span className="summary-total-amount">{totalPrice} €</span>
+        <span className="summary-total-amount">{pricing.totalPrice} €</span>
       </div>
 
-      {/* 7 - INFORMACIÓ IMPORTANT I INSTRUCCIONS DE PAGAMENT */}
+      {/* 4. INFORMACIÓ IMPORTANT I INSTRUCCIONS DE PAGAMENT */}
       <div style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
         <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <FileText size={18} color="var(--primary)" />
-          <span>7 - Informació Important per a la Formalització</span>
+          <span>Informació Important per a la Formalització del Pagament</span>
         </h4>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', fontSize: '13px', color: '#475569' }}>
-          <div>
-            <strong style={{ color: '#0f172a', display: 'block', marginBottom: '4px' }}>
-              📋 Documentació Obligatòria a Presentar:
-            </strong>
-            <ul style={{ paddingLeft: '18px', margin: 0, lineHeight: 1.6 }}>
-              <li>CÒPIA DNI (Jugador o representant)</li>
-              <li>CÒPIA TARGETA SANITÀRIA</li>
-              <li>JUSTIFICANT PAGAMENT</li>
-            </ul>
-          </div>
-
-          <div>
-            <strong style={{ color: '#0f172a', display: 'block', marginBottom: '4px' }}>
-              💳 Pagament per Transferència Bancària:
-            </strong>
-            <p style={{ margin: '0 0 4px', fontFamily: 'monospace', fontWeight: 700, fontSize: '12.5px', color: '#0066f5' }}>
-              IBAN: {config.banc.iban}
-            </p>
-            <p style={{ margin: 0, fontSize: '12px' }}>
-              Entitat: <em>{config.banc.entitat}</em>
-            </p>
-            <p style={{ margin: '2px 0 0', fontSize: '12px' }}>
-              Concepte: <em>{config.banc.concepte.replace('[NOM_INFANT]', formData.nen.nom.toUpperCase())}</em>
-            </p>
-          </div>
-
-          <div>
-            <strong style={{ color: '#0f172a', display: 'block', marginBottom: '4px' }}>
-              🏟️ Atenció Presencial a l'Oficina del Club:
-            </strong>
-            <p style={{ margin: 0, lineHeight: 1.5 }}>
-              {config.banc.horariOficina}
-            </p>
-          </div>
-        </div>
-
-        <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#b45309' }}>
-          <AlertTriangle size={16} style={{ flexShrink: 0 }} />
-          <span>
-            *La inscripció només quedarà completada una vegada es faci l'entrega de tota la documentació requerida (data límit: <strong>{config.banc.dataLimit}</strong>). Recomanam enviar el justificant a <strong>{config.banc.emailJustificants}</strong>.
-          </span>
+        <div style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.6 }}>
+          <p style={{ margin: '0 0 8px 0' }}>
+            <strong>1. Transferència bancària:</strong> IBAN: <strong style={{ color: '#0f172a' }}>{config.banc.iban}</strong> ({config.banc.entitat}).<br />
+            Concepte OBLIGATORI: <strong style={{ color: 'var(--primary)' }}>CAMPUS {formData.nen.dni || formData.nen.nom} {formData.nen.nom}</strong>.
+          </p>
+          <p style={{ margin: '0 0 8px 0' }}>
+            <strong>2. Pagament presencial:</strong> En efectiu o targeta a les oficines del club (Dilluns i Dimecres de 18:30h a 20:00h).
+          </p>
+          <p style={{ margin: '0', fontSize: '13px', color: '#64748b' }}>
+            ✉️ En enviar la inscripció, rebràs automàticament un correu a <strong>{formData.tutor.email}</strong> amb el resum complet i un enllaç directe per a modificar la inscripció fins al <strong>10/06/2027</strong> sense contrasenyes.
+          </p>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#ecfdf5', padding: '14px 18px', borderRadius: '12px', border: '1px solid #a7f3d0', marginBottom: '28px' }}>
-        <CheckCircle2 size={20} color="#059669" />
-        <span style={{ fontSize: '13.5px', color: '#065f46', fontWeight: 600 }}>
-          En prémer el botó inferior es registrarà la plaça a la base de dades i rebràs la confirmació oficial al teu correu ({formData.tutor.email}).
-        </span>
-      </div>
-
-      {/* Botons de navegació */}
+      {/* Botons d'acció */}
       <div className="step-actions-footer">
         <button
           type="button"
@@ -307,19 +272,18 @@ export const Step5SummaryData: React.FC<Step5SummaryDataProps> = ({
           disabled={isSubmitting}
         >
           <ArrowLeft size={18} />
-          <span>Modificar dades</span>
+          <span>Tornar a Permisos</span>
         </button>
 
         <button
-          type="submit"
-          className="btn-step-next"
+          type="button"
+          className="btn-step-confirm"
           onClick={handleFinalSubmit}
           disabled={isSubmitting}
-          style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', boxShadow: '0 4px 14px rgba(5, 150, 105, 0.35)' }}
           id="btn-confirmar-inscripcio"
         >
-          <ShieldCheck size={18} />
-          <span>{isSubmitting ? 'Guardant inscripció...' : 'Confirmar i Enviar Inscripció'}</span>
+          <CheckCircle2 size={19} />
+          <span>{isSubmitting ? 'Processant inscripció...' : 'Confirmar i Formalitzar Inscripció'}</span>
         </button>
       </div>
     </div>

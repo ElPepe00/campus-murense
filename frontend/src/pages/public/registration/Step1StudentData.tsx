@@ -8,27 +8,6 @@ interface Step1StudentDataProps {
   onNext: (data: DadesNenForm) => void;
 }
 
-const ESCOLES_OPTIONS = [
-  'CEIP Joan Mas (Muro)',
-  'Col·legi Sant Francesc d’Assís (Muro)',
-  'CEIP Son Ferrer',
-  'CEIP Can Picafort',
-  'CEIP Voramar',
-  'Altre centre escolar',
-];
-
-const CURSOS_OPTIONS = [
-  'Educació Infantil (3-5 anys)',
-  '1r Primària',
-  '2n Primària',
-  '3r Primària',
-  '4t Primària',
-  '5è Primària',
-  '6è Primària',
-  '1r ESO',
-  '2n ESO',
-];
-
 const TALLES_ROBA: { val: TallaCamisetaType; label: string }[] = [
   { val: '4-6', label: 'Talla 4-6 anys' },
   { val: '8-10', label: 'Talla 8-10 anys' },
@@ -40,6 +19,7 @@ const TALLES_ROBA: { val: TallaCamisetaType; label: string }[] = [
 
 /**
  * Pas 1 de la inscripció: Dades personals de l'infant segons l'especificació oficial.
+ * (S'han suprimit els camps de col·legi i curs escolar).
  */
 export const Step1StudentData: React.FC<Step1StudentDataProps> = ({ initialData, onNext }) => {
   const [formData, setFormData] = useState<DadesNenForm>(initialData);
@@ -242,40 +222,6 @@ export const Step1StudentData: React.FC<Step1StudentDataProps> = ({ initialData,
             onChange={(e) => setFormData({ ...formData, clubProcedencia: e.target.value })}
             required
           />
-        </div>
-
-        {/* Escola */}
-        <div className="form-group">
-          <label className="form-label" htmlFor="nen-escola">Col·legi o Escola *</label>
-          <select
-            id="nen-escola"
-            className="form-select"
-            value={formData.colegi}
-            onChange={(e) => setFormData({ ...formData, colegi: e.target.value })}
-          >
-            {ESCOLES_OPTIONS.map((col) => (
-              <option key={col} value={col}>
-                {col}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Curs escolar actual */}
-        <div className="form-group">
-          <label className="form-label" htmlFor="nen-curs">Curs acadèmic actual *</label>
-          <select
-            id="nen-curs"
-            className="form-select"
-            value={formData.curs}
-            onChange={(e) => setFormData({ ...formData, curs: e.target.value })}
-          >
-            {CURSOS_OPTIONS.map((cur) => (
-              <option key={cur} value={cur}>
-                {cur}
-              </option>
-            ))}
-          </select>
         </div>
 
         {/* 3 - ROBA: Talla de Camiseta Oficial */}

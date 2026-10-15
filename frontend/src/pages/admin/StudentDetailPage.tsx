@@ -8,7 +8,6 @@ import {
   Calendar, 
   FileText, 
   AlertTriangle, 
-  GraduationCap, 
   CheckCircle2, 
   Clock, 
   ShieldCheck,
@@ -168,24 +167,13 @@ export const StudentDetailPage: React.FC<StudentDetailPageProps> = ({ childId, o
             </div>
 
             <div className="profile-field-item">
-              <span className="field-title">
-                <GraduationCap size={15} />
-                Col·legi / Centre
-              </span>
-              <strong className="field-value">{fitxa.colegi}</strong>
-            </div>
-
-            <div className="profile-field-item">
-              <span className="field-title">
-                <GraduationCap size={15} />
-                Curs escolar
-              </span>
-              <strong className="field-value">{fitxa.curs}</strong>
-            </div>
-
-            <div className="profile-field-item">
               <span className="field-title">Talla de roba</span>
-              <strong className="field-value">{fitxa.tallaRoba}</strong>
+              <strong className="field-value">Talla {fitxa.tallaRoba}</strong>
+            </div>
+
+            <div className="profile-field-item">
+              <span className="field-title">Club de procedència</span>
+              <strong className="field-value">{fitxa.clubProcedencia}</strong>
             </div>
 
             <div className="profile-field-item">
@@ -277,9 +265,28 @@ export const StudentDetailPage: React.FC<StudentDetailPageProps> = ({ childId, o
         {activeSubTab === 'campus' && (
           <div className="profile-fields-grid">
             <div className="profile-field-item">
-              <span className="field-title">Setmanes contractades</span>
-              <strong className="field-value">{fitxa.campus.setmanes} setmanes</strong>
+              <span className="field-title">Setmana contractada</span>
+              <strong className="field-value">Setmana {fitxa.campus.setmana || 1}</strong>
             </div>
+
+            <div className="profile-field-item">
+              <span className="field-title">
+                <UtensilsCrossed size={15} />
+                Servei de Dinar (8 €/dia)
+              </span>
+              <strong className="field-value">
+                {fitxa.campus.dinarDiesTotal > 0
+                  ? `${fitxa.campus.dinarDiesTotal} dies contractats (${fitxa.campus.dinarDiesTotal * 8} €)`
+                  : 'Sense dinar (0 €)'}
+              </strong>
+            </div>
+
+            {fitxa.campus.intoleranciesDinar && (
+              <div className="profile-field-item full-width">
+                <span className="field-title">Intoleràncies alimentàries (Dinar)</span>
+                <strong className="field-value" style={{ color: '#d97706' }}>{fitxa.campus.intoleranciesDinar}</strong>
+              </div>
+            )}
 
             <div className="profile-field-item">
               <span className="field-title">
@@ -292,38 +299,36 @@ export const StudentDetailPage: React.FC<StudentDetailPageProps> = ({ childId, o
             </div>
 
             <div className="profile-field-item">
-              <span className="field-title">
-                <UtensilsCrossed size={15} />
-                Servei de Menjador
-              </span>
-              <strong className="field-value">{fitxa.campus.menjador ? 'Contractat' : 'No contractat'}</strong>
-            </div>
-
-            <div className="profile-field-item">
-              <span className="field-title">Servei de Matinera</span>
-              <strong className="field-value">{fitxa.campus.matinera ? 'Sí (Des de les 7:45h)' : 'No'}</strong>
+              <span className="field-title">Sortides i Excursions (+15 €/u)</span>
+              <strong className="field-value">
+                30/06: {fitxa.campus.excursio1 ? 'SÍ' : 'NO'} • 07/07: {fitxa.campus.excursio2 ? 'SÍ' : 'NO'}
+              </strong>
             </div>
 
             <div className="profile-field-item">
               <span className="field-title">Preu Total</span>
-              <strong className="field-value" style={{ color: '#0066f5', fontSize: '18px' }}>
-                {fitxa.campus.preuTotal.toFixed(2)} €
+              <strong className="field-value" style={{ color: 'var(--primary)', fontSize: '20px', fontWeight: 900 }}>
+                {fitxa.campus.preuTotal?.toFixed(2) || '110.00'} €
               </strong>
             </div>
           </div>
         )}
       </div>
 
-      {/* Botó d'edició ràpida */}
-      <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-        <button 
-          type="button" 
-          className="btn-hero-secondary"
-          onClick={() => alert('Funció d\'edició de dades en desenvolupament')}
-        >
-          <Edit size={16} />
-          <span>Editar fitxa de l'infant</span>
-        </button>
+      {/* Botons d'acció */}
+      <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+        {fitxa.campus.editToken && (
+          <a 
+            href={`/modificar-inscripcio?token=${fitxa.campus.editToken}`}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-hero-secondary"
+            style={{ textDecoration: 'none' }}
+          >
+            <Edit size={16} />
+            <span>Obrir formulari d'edició familiar</span>
+          </a>
+        )}
       </div>
     </div>
   );

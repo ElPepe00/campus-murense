@@ -8,7 +8,7 @@ import {
   FileSpreadsheet, 
   Settings, 
   LogOut, 
-  Bell, 
+  Mail, 
   X
 } from 'lucide-react';
 import type { PageTabKey } from './Navbar';
@@ -152,11 +152,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             <button
               type="button"
-              className={`sidebar-link ${activeTab === 'admin-noticies' ? 'active' : ''}`}
-              onClick={() => handleNavClick('admin-noticies')}
+              className={`sidebar-link ${activeTab === 'admin-missatgeria' ? 'active' : ''}`}
+              onClick={() => handleNavClick('admin-missatgeria')}
             >
-              <Bell size={18} />
-              <span>Gestió de Notícies</span>
+              <Mail size={18} />
+              <span>Missatgeria Directa</span>
             </button>
 
             <button

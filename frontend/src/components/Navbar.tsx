@@ -4,7 +4,6 @@ import {
   Home, 
   Plus, 
   Menu,
-  Bell,
   MessageSquare,
   X
 } from 'lucide-react';
@@ -12,6 +11,7 @@ import {
 export type PageTabKey = 
   | 'inici' 
   | 'inscripcio' 
+  | 'modificar-inscripcio'
   | 'noticies' 
   | 'contacte'
   | 'avis-legal'
@@ -23,6 +23,7 @@ export type PageTabKey =
   | 'admin-assistencia' 
   | 'admin-pagos' 
   | 'admin-informes' 
+  | 'admin-missatgeria'
   | 'admin-configuracio'
   | 'admin-noticies';
 
@@ -129,20 +130,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </a>
 
             <a
-              href="/noticies"
-              className={`nav-link-btn ${activeTab === 'noticies' ? 'active' : ''}`}
-              onClick={(e) => {
-                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
-                  e.preventDefault();
-                  handleSelectTab('noticies');
-                }
-              }}
-            >
-              <Bell size={17} />
-              <span>Notícies</span>
-            </a>
-
-            <a
               href="/contacte"
               className={`nav-link-btn ${activeTab === 'contacte' ? 'active' : ''}`}
               onClick={(e) => {
@@ -237,22 +224,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Home size={20} />
             </div>
             <span>Inici</span>
-          </a>
-
-          <a
-            href="/noticies"
-            className={`mobile-drawer-item ${activeTab === 'noticies' ? 'active' : ''}`}
-            onClick={(e) => {
-              if (!e.ctrlKey && !e.metaKey && e.button === 0) {
-                e.preventDefault();
-                handleSelectTab('noticies');
-              }
-            }}
-          >
-            <div className="mobile-drawer-icon-wrap">
-              <Bell size={20} />
-            </div>
-            <span>Notícies</span>
           </a>
 
           <a

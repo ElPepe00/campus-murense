@@ -48,7 +48,7 @@ if not DATABASE_URL:
         "Defineix DATABASE_URL com a variable d'entorn en producció per usar PostgreSQL."
     )
 
-from database import engine, Base, SessionLocal
+from database import engine, Base, SessionLocal, run_migrations
 import models, security
 from routers import auth_router, campus_router
 from seed_data import seed
@@ -135,7 +135,8 @@ def inicialitzar_app() -> None:
 
     try:
         Base.metadata.create_all(bind=engine)
-        log.info("Taules de la base de dades verificades/creades.")
+        run_migrations()
+        log.info("Taules de la base de dades verificades/creades i migracions aplicades.")
     except Exception as exc:
         log.error(f"Error creant taules: {exc}")
         return

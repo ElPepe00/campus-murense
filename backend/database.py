@@ -84,3 +84,51 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def run_migrations():
+    """Executa migracions lleugeres d'esquema per a SQLite i PostgreSQL si calen noves columnes."""
+    import uuid
+    with engine.connect() as conn:
+        # 1. Comprovar columnes existents a 'inscripcions'
+        try:
+            is_sqlite = DATABASE_URL.startswith("sqlite")
+            if is_sqlite:
+                cols_res = conn.execute(text("PRAGMA table_info(inscripcions)")).fetchall()
+                existing_cols = {row[1] for row in cols_res}
+            else:
+                cols_res = conn.execute(text(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name='inscripcions'"
+                )).fetchall()
+                existing_cols = {row[0] for row in cols_res}
+
+            if existing_cols:
+                if "edit_token" not in existing_cols:
+                    conn.execute(text("ALTER TABLE inscripcions ADD COLUMN edit_token VARCHAR(64)"))
+                    log.info("Columna 'edit_token' afegida a 'inscripcions'.")
+                if "setmana_seleccionada" not in existing_cols:
+                    conn.execute(text("ALTER TABLE inscripcions ADD COLUMN setmana_seleccionada INTEGER DEFAULT 1"))
+                    log.info("Columna 'setmana_seleccionada' afegida a 'inscripcions'.")
+                if "dinar_dies" not in existing_cols:
+                    conn.execute(text("ALTER TABLE inscripcions ADD COLUMN dinar_dies TEXT"))
+                    log.info("Columna 'dinar_dies' afegida a 'inscripcions'.")
+                if "dinar_dies_total" not in existing_cols:
+                    conn.execute(text("ALTER TABLE inscripcions ADD COLUMN dinar_dies_total INTEGER DEFAULT 0"))
+                    log.info("Columna 'dinar_dies_total' afegida a 'inscripcions'.")
+
+                # Generar tokens per a inscripcions que no en tinguin
+                rows_without_token = conn.execute(text(
+                    "SELECT id FROM inscripcions WHERE edit_token IS NULL"
+                )).fetchall()
+                for (row_id,) in rows_without_token:
+                    new_tok = str(uuid.uuid4())
+                    conn.execute(
+                        text("UPDATE inscripcions SET edit_token = :t WHERE id = :id"),
+                        {"t": new_tok, "id": row_id}
+                    )
+                if rows_without_token:
+                    log.info(f"S'han assignat edit_token a {len(rows_without_token)} inscripcions existents.")
+
+                conn.commit()
+        except Exception as e:
+            log.warning(f"Avís durant migració d'esquema (pot ser que la taula encara no existeixi): {e}")

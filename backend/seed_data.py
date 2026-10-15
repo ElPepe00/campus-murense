@@ -1,4 +1,5 @@
 # backend/seed_data.py
+import json
 from datetime import date, time, datetime
 from database import SessionLocal
 import models
@@ -175,7 +176,7 @@ def seed():
 
         avui = date.today()
 
-        for item in alumnes_mock:
+        for idx, item in enumerate(alumnes_mock):
             # Tutor
             tutor = models.Tutor(
                 nom_complet=item["tutor"],
@@ -214,23 +215,29 @@ def seed():
             )
             db.add(autoritzat)
 
-            # Inscripció
+            import uuid
+            # Inscripció (exactament 1 setmana, preu oficial i dinar per dies)
+            dies_dinar_mock = ["2027-06-28", "2027-06-29", "2027-06-30"]
             inscripcio = models.Inscripcio(
                 jugador_id=jugador.id,
                 edicio_id=edicio.id,
+                edit_token=str(uuid.uuid4()),
                 grup_assignat=item["grup"],
                 autoritzacio_imatges=True,
                 autoritzacio_sortir_sol=False,
                 autoritzacio_sortides=True,
                 servei_piscina=models.ServeiPiscinaEnum.SI,
                 servei_menjador=True,
+                dinar_dies=json.dumps(dies_dinar_mock),
+                dinar_dies_total=len(dies_dinar_mock),
                 intolerancies_menjador=item["alergies"] if "lactosa" in item["alergies"] else None,
-                servei_matinera=True,
+                servei_matinera=False,
                 excursio_30_06=True,
-                excursio_07_07=True,
-                setmanes_contractades=4,
+                excursio_07_07=False,
+                setmana_seleccionada=(idx % 4) + 1,
+                setmanes_contractades=1,
                 descompte_aplicat=models.TipusDescompteEnum.MURENSE,
-                preu_total=item["preu"],
+                preu_total=138.00,  # 99€ base + 24€ dinar (3 dies) + 15€ excursió
                 estat_pagament=models.EstatPagamentEnum.PAGAT if item["pagat"] else models.EstatPagamentEnum.PENDENT
             )
             db.add(inscripcio)

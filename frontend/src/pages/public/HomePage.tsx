@@ -56,21 +56,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               id="btn-hero-inscriute"
             >
               <Plus size={19} strokeWidth={2.6} />
-              <span>Inscriu el teu fill/a ara</span>
-            </a>
-
-            <a 
-              href="/noticies" 
-              className="btn-hero-secondary"
-              onClick={(e) => {
-                if (!e.ctrlKey && !e.metaKey && e.button === 0) {
-                  e.preventDefault();
-                  onNavigateTab('noticies');
-                }
-              }}
-            >
-              <Bell size={18} />
-              <span>Notícies i Avisos</span>
+              <span>Inscriu el teu fill/a ara (110 €)</span>
             </a>
 
             <a 
@@ -84,21 +70,23 @@ export const HomePage: React.FC<HomePageProps> = ({
               }}
             >
               <MessageSquare size={18} />
-              <span>Contacte</span>
+              <span>Atenció i Contacte</span>
             </a>
           </div>
         </div>
 
         <div className="hero-image-col">
           <picture>
-            <source srcSet="/hero-campus.webp" type="image/webp" />
+            <source srcSet="/hero.jpg" type="image/jpeg" />
+            <source srcSet="/hero.png" type="image/png" />
             <img 
-              src="/hero-campus.jpg" 
-              alt="Nins i nines al camp de futbol C.D. Murense durant el campus esportiu" 
+              src="/hero.jpg" 
+              alt="Nins i nines al camp de futbol C.D. Murense durant el campus esportiu d'estiu" 
               loading="eager"
               decoding="async"
               width="688"
               height="384"
+              style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '16px' }}
             />
           </picture>
           <div className="hero-image-gradient"></div>
