@@ -1,47 +1,45 @@
 // frontend/src/api/client.ts
+import { supabase } from '../lib/supabaseClient';
 
-// En producció (Render all-in-one), el frontend és servit per FastAPI al mateix host.
-// Les crides a l'API han de ser relatives (URL buida), no 'http://localhost:8000'.
-// En dev (npm run dev), s'usa 'http://localhost:8000' com a fallback.
-// Si VITE_API_URL està definida explícitament (qualsevol entorn), s'usa aquell valor.
+/**
+ * Re-export oficial del client de Supabase per al Campus C.D. Murense.
+ * Tota la lògica d'accés a dades ara llegeix i escriu directament a Supabase
+ * sense passar pel backend de Python (FastAPI).
+ */
+export { supabase };
+
+/**
+ * URL base de Supabase (o de l'entorn) mantinguda per compatibilitat.
+ */
 const rawApiUrl: string =
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() ||
   (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
-  (import.meta.env.PROD ? '' : 'http://localhost:8000');
+  '';
 
 export const API_BASE_URL = rawApiUrl.replace(/\/+$/, '');
 
-export async function apiClient<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const token = localStorage.getItem('murense_token');
+/**
+ * Funció de diagnòstic per verificar la connectivitat directa amb Supabase.
+ */
+export async function checkDatabaseConnection(): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('edicions_activitat')
+      .select('id')
+      .limit(1);
 
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {}),
-  };
-
-  if (token) {
-    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    return !error;
+  } catch {
+    return false;
   }
+}
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    let errorMessage = `Error HTTP ${response.status}`;
-    try {
-      const errorData = await response.json();
-      if (errorData.detail) {
-        errorMessage = errorData.detail;
-      }
-    } catch {
-      // Ignorar error al parsear JSON
-    }
-    throw new Error(errorMessage);
-  }
-
-  return response.json();
+/**
+ * Funció d'ajuda compatible per si algun component legacy invoca apiClient directament.
+ * Sempre recomanable fer servir les funcions específiques de campusApi i authApi.
+ */
+export async function apiClient<T>(_endpoint: string, _options: RequestInit = {}): Promise<T> {
+  throw new Error(
+    "L'accés mitjançant apiClient (FastAPI) ha estat suprimit. S'ha d'accedir directament a Supabase mitjançant @supabase/supabase-js."
+  );
 }

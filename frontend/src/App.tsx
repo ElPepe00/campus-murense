@@ -28,7 +28,7 @@ import { CookieBanner } from './components/CookieBanner';
 import { WhatsAppButton } from './components/WhatsAppButton';
 import { trackPageView } from './utils/analytics';
 import { fetchCampusStats, type CampusStats } from './api/campusApi';
-import { API_BASE_URL } from './api/client';
+import { checkDatabaseConnection } from './api/client';
 
 function getTabFromPath(path: string): PageTabKey {
   const cleanPath = path.split('?')[0].split('#')[0].replace(/\/+$/, '') || '/';
@@ -112,14 +112,11 @@ function MainAppContent() {
     trackPageView(currentPath);
   }, [currentPath]);
 
-  // Comprovació de disponibilitat de l'API de FastAPI
+  // Comprovació de connectivitat directa amb Supabase
   useEffect(() => {
-    fetch(`${API_BASE_URL}/`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.status === 'ok') {
-          setApiConnected(true);
-        }
+    checkDatabaseConnection()
+      .then((connected) => {
+        setApiConnected(connected);
       })
       .catch(() => {
         setApiConnected(false);
