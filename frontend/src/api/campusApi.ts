@@ -785,6 +785,21 @@ export async function submitInscripcio(
     observacions: 'Inscrit recentment des del portal web',
   });
 
+  // 8. Enviar correu oficial de confirmació via Supabase Edge Function
+  try {
+    const { error: emailErr } = await supabase.functions.invoke('send-confirmation-email', {
+      body: {
+        inscripcioId: novaInscripcio.id,
+        appUrl: typeof window !== 'undefined' ? window.location.origin : undefined,
+      },
+    });
+    if (emailErr) {
+      console.warn('[Supabase Edge Function] Avís enviant confirmació:', emailErr.message);
+    }
+  } catch (err) {
+    console.warn('[Supabase Edge Function] Error invocat send-confirmation-email:', err);
+  }
+
   return {
     status: 'ok',
     inscripcioId: novaInscripcio.id,
@@ -1051,24 +1066,24 @@ export async function sendBulkEmail(
 
   const total = destinataris.size;
 
-  // Si existeix Edge Function 'send-bulk-email' a Supabase, la invoquem
-  try {
-    await supabase.functions.invoke('send-bulk-email', {
-      body: {
-        ...payload,
-        destinataris: Array.from(destinataris),
-      },
-    });
-  } catch (err) {
-    console.warn('[Supabase Edge Function] Avís enviant correus massius:', err);
+  // Invoquem l'Edge Function 'send-bulk-email' a Supabase
+  const { data: fnData, error: fnErr } = await supabase.functions.invoke('send-bulk-email', {
+    body: {
+      ...payload,
+      destinataris: Array.from(destinataris),
+    },
+  });
+
+  if (fnErr) {
+    throw new Error(`Error enviant comunicat massiu: ${fnErr.message}`);
   }
 
   return {
-    status: 'ok',
-    total,
-    sent: total,
-    failed: 0,
-    message: `Comunicat processat correctament per a ${total} tutors.`,
+    status: fnData?.status || 'ok',
+    total: fnData?.total ?? total,
+    sent: fnData?.sent ?? total,
+    failed: fnData?.failed ?? 0,
+    message: fnData?.message || `Comunicat enviat correctament a ${total} tutors.`,
   };
 }
 
@@ -1086,20 +1101,22 @@ export async function reenviarEmailConfirmacio(
 
   const tutorEmail = inscripcio?.jugadors?.tutors?.email;
 
-  // Si existeix Edge Function 'send-confirmation-email' a Supabase, la invoquem
-  try {
-    await supabase.functions.invoke('send-confirmation-email', {
-      body: { inscripcioId },
-    });
-  } catch (err) {
-    console.warn('[Supabase Edge Function] Avís reenviant email de confirmació:', err);
+  const { data: fnData, error: fnErr } = await supabase.functions.invoke('send-confirmation-email', {
+    body: {
+      inscripcioId,
+      appUrl: typeof window !== 'undefined' ? window.location.origin : undefined,
+    },
+  });
+
+  if (fnErr || fnData?.sent === false) {
+    throw new Error(fnErr?.message || fnData?.error || 'No s\'ha pogut enviar el correu de confirmació');
   }
 
   return {
     status: 'ok',
     message: tutorEmail
-      ? `Correu de confirmació preparat per a enviar a ${tutorEmail}`
-      : "Inscripció localitzada correctament a Supabase",
+      ? `Correu de confirmació enviat a ${tutorEmail}`
+      : 'Correu de confirmació enviat correctament',
     sent: true,
   };
 }
