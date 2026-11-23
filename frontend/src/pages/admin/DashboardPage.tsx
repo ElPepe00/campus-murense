@@ -30,9 +30,9 @@ interface DashboardPageProps {
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   onNavigateTab,
   stats = {
-    totalInscritos: 86,
-    presentesHoy: 74,
-    pendientesPago: 12,
+    totalInscritos: 0,
+    presentesHoy: 0,
+    pendientesPago: 0,
   },
 }) => {
   const { usuari } = useAuth();

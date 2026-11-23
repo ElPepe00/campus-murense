@@ -278,13 +278,12 @@ export async function fetchCampusStats(): Promise<CampusStats> {
   const presentesHoy = presentsRes.count ?? 0;
   const ausentesHoy = absentsRes.count ?? 0;
 
-  // Si encara no hi ha registres a la base de dades, valors predeterminats per al campus
   return {
-    totalInscritos: totalInscritos > 0 ? totalInscritos : 86,
-    presentesHoy: presentesHoy > 0 ? presentesHoy : 74,
-    ausentesHoy: ausentesHoy > 0 ? ausentesHoy : 8,
-    pendientesPago: pendientesPago > 0 ? pendientesPago : 12,
-    pagados: pagados > 0 ? pagados : 74,
+    totalInscritos,
+    presentesHoy,
+    ausentesHoy,
+    pendientesPago,
+    pagados,
   };
 }
 
